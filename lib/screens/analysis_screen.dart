@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key});
@@ -16,56 +15,34 @@ class AnalysisScreen extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSummaryCard(),
-                  const SizedBox(height: 20),
-                  _buildSectionLabel('AI 피드백'),
-                  const SizedBox(height: 8),
-                  _buildFeedbackBox(),
-                  const SizedBox(height: 20),
-                  _buildSectionLabel('예산 초과 카테고리'),
-                  const SizedBox(height: 8),
-                  _buildOverBudgetCard('🍺', '술', '+8,000원 초과'),
-                  const SizedBox(height: 8),
-                  _buildOverBudgetCard('☕', '카페', '+4,500원 초과'),
-                  const SizedBox(height: 20),
-                  _buildSectionLabel('전체 지출 내역'),
-                  const SizedBox(height: 8),
-                  _buildExpenseCard('치킨', '식비', '15,000원'),
-                  const SizedBox(height: 8),
-                  _buildExpenseCard('지하철', '교통', '1,400원'),
-                  const SizedBox(height: 8),
-                  _buildExpenseCard('카페라떼', '카페', '5,500원'),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ),
-          BottomNavigationBar(
-            currentIndex: 2,
-            selectedItemColor: const Color(0xFF534AB7),
-            unselectedItemColor: Colors.grey,
-            type: BottomNavigationBarType.fixed,
-            onTap: (index) {
-              if (index == 0) context.go('/home');
-              if (index == 1) context.go('/input');
-            },
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: '홈'),
-              BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: '입력'),
-              BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: '분석'),
-              BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '설정'),
-            ],
-          ),
-        ],
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSummaryCard(),
+            const SizedBox(height: 20),
+            _buildSectionLabel('AI 피드백'),
+            const SizedBox(height: 8),
+            _buildFeedbackBox(),
+            const SizedBox(height: 20),
+            _buildSectionLabel('예산 초과 카테고리'),
+            const SizedBox(height: 8),
+            _buildOverBudgetCard('🍺', '술', '+8,000원 초과'),
+            const SizedBox(height: 8),
+            _buildOverBudgetCard('☕', '카페', '+4,500원 초과'),
+            const SizedBox(height: 20),
+            _buildSectionLabel('전체 지출 내역'),
+            const SizedBox(height: 8),
+            _buildExpenseCard('치킨', '식비', '15,000원'),
+            const SizedBox(height: 8),
+            _buildExpenseCard('지하철', '교통', '1,400원'),
+            const SizedBox(height: 8),
+            _buildExpenseCard('카페라떼', '카페', '5,500원'),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

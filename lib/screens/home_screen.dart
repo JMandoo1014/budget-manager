@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -45,22 +44,6 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 16),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        selectedItemColor: const Color(0xFF534AB7),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 1) context.go('/input');
-          if (index == 2) context.go('/analysis');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: '입력'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: '분석'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '설정'),
-        ],
       ),
     );
   }

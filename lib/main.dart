@@ -1,28 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'screens/shell_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/input_screen.dart';
 import 'screens/analysis_screen.dart';
 
 final _router = GoRouter(
+  initialLocation: '/',
   routes: [
     GoRoute(
       path: '/',
       builder: (context, state) => const OnboardingScreen(),
     ),
-    GoRoute(
-      path: '/home',
-      builder: (context, state) => const HomeScreen(),
-    ),
-    GoRoute(
-      path: '/input',
-      builder: (context, state) => const InputScreen(),
-    ),
-    GoRoute(
-      path: '/analysis',
-      builder: (context, state) => const AnalysisScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          ShellScreen(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/home',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: HomeScreen()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/input',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: InputScreen()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/analysis',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: AnalysisScreen()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/settings',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: Scaffold(
+                  body: Center(child: Text('설정')),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     ),
   ],
 );
@@ -47,6 +82,12 @@ class BudgetManagerApp extends StatelessWidget {
         ),
         primaryColor: const Color(0xFF534AB7),
         useMaterial3: true,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          },
+        ),
       ),
       routerConfig: _router,
     );

@@ -70,22 +70,6 @@ class _InputScreenState extends State<InputScreen> {
           _buildBottomButton(context),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        selectedItemColor: const Color(0xFF534AB7),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 0) context.go('/home');
-          if (index == 2) context.go('/analysis');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: '입력'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: '분석'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '설정'),
-        ],
-      ),
     );
   }
 
