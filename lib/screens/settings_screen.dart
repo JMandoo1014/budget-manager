@@ -78,7 +78,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _onResetBudget() async {
-    context.push('/');
+    await context.push('/');
+    if (mounted) context.go('/home');
   }
 
   Future<void> _onToggleAutoRollover(bool value) async {

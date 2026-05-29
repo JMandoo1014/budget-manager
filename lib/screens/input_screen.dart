@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 
 import '../models/expense.dart';
 import '../services/ai_service.dart';
@@ -92,6 +92,7 @@ class _InputScreenState extends State<InputScreen> {
       await StorageService().saveExpense(expense);
       await _checkAndNotifyOverBudget(expense.category);
       if (mounted) {
+        HapticFeedback.lightImpact();
         _controller.clear();
         setState(() {
           _input = '';
@@ -101,12 +102,12 @@ class _InputScreenState extends State<InputScreen> {
           _isClassifying = false;
           _isSaving = false;
         });
-        context.go('/home');
+        AppToast.show(context, '지출이 기록됐어요! 💰');
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        _showToast('저장에 실패했습니다.');
+        AppToast.show(context, '저장에 실패했어요.', isError: true);
       }
     }
   }
@@ -192,6 +193,7 @@ class _InputScreenState extends State<InputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -352,8 +354,10 @@ class _InputScreenState extends State<InputScreen> {
 
   Widget _buildBottomButton() {
     final canSave = _hasInput && !_isSaving && !_isClassifying && _amount > 0;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final bottomPad = bottomInset > 0 ? bottomInset + 16 : 100.0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+      padding: EdgeInsets.fromLTRB(24, 8, 24, bottomPad),
       child: Opacity(
         opacity: canSave ? 1.0 : 0.4,
         child: SizedBox(
