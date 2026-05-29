@@ -181,7 +181,7 @@ class _InputScreenState extends State<InputScreen> {
 
   Widget _buildBottomButton(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
       child: Opacity(
         opacity: _hasInput ? 1.0 : 0.4,
         child: SizedBox(

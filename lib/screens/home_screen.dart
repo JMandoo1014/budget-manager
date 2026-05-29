@@ -107,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
         : 0.0;
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -124,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
             final color = meta?.$2 ?? const Color(0xFF9E9E9E);
             return _buildCategoryCard(emoji, entry.key, 0, entry.value, 0.0, color);
           }),
-          const SizedBox(height: 16),
+          const SizedBox(height: 100),
         ],
       ),
     );
