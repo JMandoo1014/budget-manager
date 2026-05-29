@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../models/budget.dart';
+import '../models/expense.dart';
 import '../services/storage_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.refreshTrigger = 0});
+
+  final int refreshTrigger;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -12,6 +15,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Budget? _budget;
+  List<Expense> _expenses = [];
   bool _isLoading = true;
 
   static const _categoryMeta = {
@@ -26,14 +30,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadBudget();
+    _loadData();
   }
 
-  Future<void> _loadBudget() async {
-    final budget = await StorageService().getCurrentBudget();
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshTrigger != oldWidget.refreshTrigger) {
+      _loadData();
+    }
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    final now = DateTime.now();
+    final budgetFuture = StorageService().getCurrentBudget();
+    final expensesFuture = StorageService().getExpenses(month: now.month, year: now.year);
+    final budget = await budgetFuture;
+    final expenses = await expensesFuture;
     if (mounted) {
       setState(() {
         _budget = budget;
+        _expenses = expenses;
         _isLoading = false;
       });
     }
@@ -46,15 +64,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _monthLabel() {
-    final now = DateTime.now();
-    return '${now.month}월 현황';
-  }
+  String get _monthLabel => '${DateTime.now().month}월 현황';
 
-  String _daysLeft() {
+  String get _daysLeft {
     final now = DateTime.now();
     final lastDay = DateTime(now.year, now.month + 1, 0);
     return '${lastDay.day - now.day + 1}일 남음';
+  }
+
+  Color _progressColor(int spent, int limit) {
+    if (limit == 0) return const Color(0xFF1D9E75);
+    final ratio = spent / limit;
+    if (ratio >= 1.0) return const Color(0xFFE24B4A);
+    if (ratio >= 0.8) return const Color(0xFFEF9F27);
+    return const Color(0xFF1D9E75);
   }
 
   @override
@@ -69,11 +92,11 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _monthLabel(),
+              _monthLabel,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
             ),
             Text(
-              _daysLeft(),
+              _daysLeft,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -99,19 +122,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildContent() {
     final budget = _budget!;
-    // 지출 데이터가 없으므로 spent는 0으로 처리
+
+    final spentByCategory = <String, int>{};
+    for (final e in _expenses) {
+      spentByCategory[e.category] = (spentByCategory[e.category] ?? 0) + e.amount;
+    }
+    final totalSpent = spentByCategory.values.fold(0, (sum, v) => sum + v);
     final totalBudget = budget.totalBudget;
-    final remaining = budget.remainingBudget;
-    final usedRatio = totalBudget > 0
-        ? (totalBudget - remaining) / totalBudget
-        : 0.0;
+    final remaining = totalBudget - totalSpent;
+    final usedRatio = totalBudget > 0 ? (totalSpent / totalBudget).clamp(0.0, 1.0) : 0.0;
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMainBudgetCard(remaining, usedRatio),
+          _buildMainBudgetCard(totalBudget, totalSpent, remaining, usedRatio),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
@@ -122,8 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ...budget.categoryBudgets.entries.map((entry) {
             final meta = _categoryMeta[entry.key];
             final emoji = meta?.$1 ?? '📌';
-            final color = meta?.$2 ?? const Color(0xFF9E9E9E);
-            return _buildCategoryCard(emoji, entry.key, 0, entry.value, 0.0, color);
+            final limit = entry.value;
+            final spent = spentByCategory[entry.key] ?? 0;
+            final color = _progressColor(spent, limit);
+            return _buildCategoryCard(emoji, entry.key, spent, limit, color);
           }),
           const SizedBox(height: 100),
         ],
@@ -131,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMainBudgetCard(int remaining, double usedRatio) {
+  Widget _buildMainBudgetCard(int totalBudget, int totalSpent, int remaining, double usedRatio) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -159,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: usedRatio.clamp(0.0, 1.0),
+              value: usedRatio,
               minHeight: 8,
               backgroundColor: const Color(0xFFEEEDFE),
               valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF534AB7)),
@@ -167,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '${(usedRatio * 100).toStringAsFixed(0)}% 사용',
+            '${(usedRatio * 100).toStringAsFixed(0)}% 사용  •  총 예산 ${_formatNumber(totalBudget)}원',
             style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
@@ -175,14 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryCard(
-    String emoji,
-    String name,
-    int spent,
-    int limit,
-    double progress,
-    Color color,
-  ) {
+  Widget _buildCategoryCard(String emoji, String name, int spent, int limit, Color color) {
+    final progress = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.all(16),
@@ -209,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
+              value: progress,
               minHeight: 6,
               backgroundColor: const Color(0xFFF0F0F0),
               valueColor: AlwaysStoppedAnimation<Color>(color),

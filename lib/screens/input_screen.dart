@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/expense.dart';
+import '../services/ai_service.dart';
 import '../services/storage_service.dart';
 
 class InputScreen extends StatefulWidget {
@@ -13,9 +16,14 @@ class InputScreen extends StatefulWidget {
 
 class _InputScreenState extends State<InputScreen> {
   final _controller = TextEditingController();
+  Timer? _debounceTimer;
+
   String _input = '';
   String _category = '기타';
-  bool _isLoading = false;
+  int _amount = 0;
+  String _name = '';
+  bool _isClassifying = false;
+  bool _isSaving = false;
 
   static const _categories = [
     ('🍚', '식비'),
@@ -30,6 +38,7 @@ class _InputScreenState extends State<InputScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -40,39 +49,73 @@ class _InputScreenState extends State<InputScreen> {
   String get _categoryEmoji =>
       _categories.firstWhere((e) => e.$2 == _category, orElse: () => ('📦', '기타')).$1;
 
-  // rawInput에서 숫자 추출 (마지막 숫자 덩어리를 금액으로 사용)
-  int get _extractedAmount {
-    final matches = RegExp(r'\d+').allMatches(_input.replaceAll(',', ''));
-    if (matches.isEmpty) return 0;
-    return int.tryParse(matches.last.group(0)!) ?? 0;
+  String get _formattedAmount {
+    if (_amount == 0) return '0원';
+    return '${_amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}원';
   }
 
-  String get _formattedAmount {
-    final amount = _extractedAmount;
-    if (amount == 0) return '0원';
-    return '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}원';
+  void _onInputChanged(String value) {
+    setState(() => _input = value);
+    _debounceTimer?.cancel();
+
+    if (value.trim().isEmpty) {
+      setState(() {
+        _category = '기타';
+        _amount = 0;
+        _name = '';
+        _isClassifying = false;
+      });
+      return;
+    }
+
+    setState(() => _isClassifying = true);
+    _debounceTimer = Timer(const Duration(milliseconds: 800), () async {
+      final result = await AiService().classifyExpense(value.trim());
+      if (mounted) {
+        setState(() {
+          _category = result['category'] as String? ?? '기타';
+          _amount = (result['amount'] as num?)?.toInt() ?? 0;
+          _name = result['name'] as String? ?? value.trim();
+          _isClassifying = false;
+        });
+      }
+    });
   }
 
   Future<void> _onSave() async {
-    final amount = _extractedAmount;
-    if (amount == 0) {
+    if (_amount == 0) {
       _showToast('금액을 확인해주세요.');
       return;
     }
 
-    setState(() => _isLoading = true);
+    print('저장 시작');
+    setState(() => _isSaving = true);
 
     try {
       final expense = Expense(
-        rawInput: _input.trim(),
+        rawInput: _name.isNotEmpty ? _name : _input.trim(),
         category: _category,
-        amount: amount,
+        amount: _amount,
       );
       await StorageService().saveExpense(expense);
-      if (mounted) context.go('/home');
-    } catch (e) {
+      print('저장 성공');
       if (mounted) {
-        setState(() => _isLoading = false);
+        _controller.clear();
+        setState(() {
+          _input = '';
+          _category = '기타';
+          _amount = 0;
+          _name = '';
+          _isClassifying = false;
+          _isSaving = false;
+        });
+        print('홈으로 이동');
+        context.go('/home');
+      }
+    } catch (e) {
+      print('저장 실패: $e');
+      if (mounted) {
+        setState(() => _isSaving = false);
         _showToast('저장에 실패했습니다.');
       }
     }
@@ -180,7 +223,7 @@ class _InputScreenState extends State<InputScreen> {
                   if (_hasInput) ...[
                     const SizedBox(height: 20),
                     _buildResultCard(),
-                    if (_showWarning) ...[
+                    if (_showWarning && !_isClassifying) ...[
                       const SizedBox(height: 12),
                       _buildWarningBox(),
                     ],
@@ -198,7 +241,7 @@ class _InputScreenState extends State<InputScreen> {
   Widget _buildInputField() {
     return TextField(
       controller: _controller,
-      onChanged: (value) => setState(() => _input = value),
+      onChanged: _onInputChanged,
       style: const TextStyle(fontSize: 18),
       decoration: InputDecoration(
         hintText: '치킨 15000',
@@ -223,58 +266,72 @@ class _InputScreenState extends State<InputScreen> {
         color: const Color(0xFFF8F8FA),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('카테고리', style: TextStyle(fontSize: 13, color: Colors.grey)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEEDFE),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '$_categoryEmoji $_category',
-                  style: const TextStyle(
-                    fontSize: 13,
+      child: _isClassifying
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
                     color: Color(0xFF534AB7),
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('금액', style: TextStyle(fontSize: 13, color: Colors.grey)),
-              Text(
-                _formattedAmount,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _showCategorySheet,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text(
-                '카테고리 수정',
-                style: TextStyle(fontSize: 12, color: Color(0xFF534AB7)),
-              ),
+            )
+          : Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('카테고리', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEEDFE),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '$_categoryEmoji $_category',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF534AB7),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('금액', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    Text(
+                      _formattedAmount,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _showCategorySheet,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      '카테고리 수정',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF534AB7)),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -299,15 +356,16 @@ class _InputScreenState extends State<InputScreen> {
   }
 
   Widget _buildBottomButton() {
+    final canSave = _hasInput && !_isSaving && !_isClassifying && _amount > 0;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
       child: Opacity(
-        opacity: _hasInput ? 1.0 : 0.4,
+        opacity: canSave ? 1.0 : 0.4,
         child: SizedBox(
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: _hasInput && !_isLoading ? _onSave : null,
+            onPressed: canSave ? _onSave : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF534AB7),
               foregroundColor: Colors.white,
@@ -317,7 +375,7 @@ class _InputScreenState extends State<InputScreen> {
               ),
               elevation: 0,
             ),
-            child: _isLoading
+            child: _isSaving
                 ? const SizedBox(
                     width: 22,
                     height: 22,

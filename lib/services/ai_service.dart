@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class AiService {
-  static const _apiKey = '';
+  static String get _apiKey => dotenv.env['CLAUDE_API_KEY'] ?? '';
   static const _endpoint = 'https://api.anthropic.com/v1/messages';
   static const _model = 'claude-sonnet-4-20250514';
 
@@ -37,10 +38,45 @@ class AiService {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final text = (data['content'] as List).first['text'] as String;
         return jsonDecode(text) as Map<String, dynamic>;
+      } else {
+        print('classifyExpense 오류: ${response.statusCode} ${response.body}');
       }
-    } catch (_) {}
+    } catch (e) {
+      print('classifyExpense 예외: $e');
+    }
 
-    return {'category': '기타', 'amount': 0, 'name': rawInput};
+    return _fallbackClassify(rawInput);
+  }
+
+  static const _keywordMap = <String, List<String>>{
+    '식비': ['치킨', '피자', '밥', '식당', '편의점', '마트', '배달'],
+    '교통': ['버스', '지하철', '택시', '기차', '카카오택시'],
+    '카페': ['카페', '커피', '스타벅스', '아메리카노'],
+    '술': ['맥주', '소주', '술', '호프', '막걸리'],
+    '쇼핑': ['쇼핑', '옷', '신발', '쿠팡', '배민'],
+  };
+
+  Map<String, dynamic> _fallbackClassify(String rawInput) {
+    final lower = rawInput.toLowerCase();
+
+    String category = '기타';
+    for (final entry in _keywordMap.entries) {
+      if (entry.value.any((kw) => lower.contains(kw))) {
+        category = entry.key;
+        break;
+      }
+    }
+
+    final digits = RegExp(r'\d+').allMatches(rawInput.replaceAll(',', ''));
+    final amount = digits.isEmpty ? 0 : (int.tryParse(digits.last.group(0)!) ?? 0);
+
+    final name = rawInput.replaceAll(RegExp(r'[\d,]+'), '').trim();
+
+    return {
+      'category': category,
+      'amount': amount,
+      'name': name.isNotEmpty ? name : rawInput,
+    };
   }
 
   Future<Map<String, int>> generateBudget({
@@ -58,9 +94,9 @@ class AiService {
         '형식: {"식비": 60000, "술": 30000, "교통": 30000, "카페": 20000, "쇼핑": 10000, "기타": 27400}';
 
     final userMessage =
-        '월 수입: ${income}원, 저축 목표: ${savingsGoal}원, '
-        '목표 기간: ${savingsMonths}개월, '
-        '사용 가능 예산: ${availableBudget}원, '
+        '월 수입: $income원, 저축 목표: $savingsGoal원, '
+        '목표 기간: $savingsMonths개월, '
+        '사용 가능 예산: $availableBudget원, '
         '소비 패턴: ${spendingPatterns.join(", ")}';
 
     try {
@@ -82,8 +118,12 @@ class AiService {
         final text = (data['content'] as List).first['text'] as String;
         final parsed = jsonDecode(text) as Map<String, dynamic>;
         return parsed.map((key, value) => MapEntry(key, (value as num).toInt()));
+      } else {
+        print('generateBudget 오류: ${response.statusCode} ${response.body}');
       }
-    } catch (_) {}
+    } catch (e) {
+      print('generateBudget 예외: $e');
+    }
 
     // 파싱 실패 시 균등 분배 fallback
     final perCategory = availableBudget ~/ 6;

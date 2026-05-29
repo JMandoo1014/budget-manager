@@ -17,6 +17,7 @@ class ShellScreen extends StatefulWidget {
 class _ShellScreenState extends State<ShellScreen> {
   late final PageController _pageController;
   double _currentPage = 0;
+  int _homeRefreshKey = 0;
 
   static const _tabs = [
     _TabItem(label: '홈', selected: Icons.home_rounded, unselected: Icons.home_outlined),
@@ -26,7 +27,18 @@ class _ShellScreenState extends State<ShellScreen> {
   ];
 
   void _onPageChanged() {
-    setState(() => _currentPage = _pageController.page ?? 0);
+    final page = _pageController.page ?? 0;
+    final prevRounded = _currentPage.round();
+    final newRounded = page.round();
+    setState(() {
+      _currentPage = page;
+      if (newRounded == 0 && prevRounded != 0) {
+        _homeRefreshKey++;
+      }
+    });
+    if (widget.navigationShell.currentIndex != newRounded) {
+      widget.navigationShell.goBranch(newRounded);
+    }
   }
 
   @override
@@ -34,6 +46,15 @@ class _ShellScreenState extends State<ShellScreen> {
     super.initState();
     _pageController = PageController(initialPage: 0);
     _pageController.addListener(_onPageChanged);
+  }
+
+  @override
+  void didUpdateWidget(ShellScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final routerIndex = widget.navigationShell.currentIndex;
+    if (_pageController.hasClients && _pageController.page?.round() != routerIndex) {
+      _pageController.jumpToPage(routerIndex);
+    }
   }
 
   @override
@@ -55,11 +76,11 @@ class _ShellScreenState extends State<ShellScreen> {
           PageView(
             controller: _pageController,
             physics: const ClampingScrollPhysics(),
-            children: const [
-              HomeScreen(),
-              InputScreen(),
-              AnalysisScreen(),
-              _SettingsPlaceholder(),
+            children: [
+              HomeScreen(refreshTrigger: _homeRefreshKey),
+              const InputScreen(),
+              const AnalysisScreen(),
+              const _SettingsPlaceholder(),
             ],
           ),
           Positioned(
@@ -73,7 +94,7 @@ class _ShellScreenState extends State<ShellScreen> {
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
+                    color: Colors.black.withValues(alpha: 0.12),
                     blurRadius: 24,
                     offset: const Offset(0, 8),
                   ),
@@ -82,7 +103,6 @@ class _ShellScreenState extends State<ShellScreen> {
               child: Row(
                 children: List.generate(_tabs.length, (index) {
                   final opacity = (1.0 - (_currentPage - index).abs()).clamp(0.0, 1.0);
-                  final isNearSelected = (_currentPage - index).abs() < 0.5;
                   final tab = _tabs[index];
 
                   return Expanded(

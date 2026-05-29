@@ -68,8 +68,8 @@ class StorageService {
         .lt('created_at', to)
         .order('created_at', ascending: false);
 
-    return (data as List)
-        .map((row) => Expense.fromJson(row as Map<String, dynamic>))
+    return data
+        .map((row) => Expense.fromJson(row))
         .toList();
   }
 }

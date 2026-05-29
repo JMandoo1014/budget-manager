@@ -15,9 +15,6 @@ class Budget {
 
   int get totalBudget => income - savingsGoal;
 
-  int get remainingBudget =>
-      totalBudget - categoryBudgets.values.fold(0, (sum, v) => sum + v);
-
   Budget copyWith({
     int? income,
     int? savingsGoal,
