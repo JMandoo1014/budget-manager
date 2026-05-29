@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/budget.dart';
 import '../services/storage_service.dart';
+import '../utils/format.dart';
 import '../widgets/app_toast.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -32,13 +33,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  String _formatNumber(int n) {
-    return n.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-  }
-
   Future<void> _onResetBudget() async {
     context.push('/');
   }
@@ -48,7 +42,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await StorageService().updateAutoRollover(value);
       if (mounted) setState(() => _budget = _budget?.copyWith(autoRollover: value));
     } catch (e) {
-      print('자동 이월 변경 오류: $e');
       if (mounted) AppToast.show(context, '변경에 실패했어요.');
     }
   }
@@ -89,7 +82,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await StorageService().deleteMonthExpenses();
       if (mounted) AppToast.show(context, '지출 내역을 초기화했어요.');
     } catch (e) {
-      print('지출 초기화 오류: $e');
       if (mounted) AppToast.show(context, '초기화에 실패했어요.');
     }
   }
@@ -154,7 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     const Text('이번 달 예산', style: TextStyle(fontSize: 13, color: Colors.grey)),
                     Text(
-                      _budget != null ? '${_formatNumber(_budget!.totalBudget)}원' : '미설정',
+                      _budget != null ? '${formatNumber(_budget!.totalBudget)}원' : '미설정',
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -166,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Text('월 저축 목표', style: TextStyle(fontSize: 13, color: Colors.grey)),
                     Text(
                       _budget != null
-                          ? '${_formatNumber(_budget!.savingsGoal ~/ _budget!.savingsMonths)}원'
+                          ? '${formatNumber(_budget!.savingsGoal ~/ _budget!.savingsMonths)}원'
                           : '미설정',
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),

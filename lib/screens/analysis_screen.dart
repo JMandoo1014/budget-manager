@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../services/storage_service.dart';
+import '../utils/format.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({super.key});
@@ -41,13 +43,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     }
   }
 
-  String _formatNumber(int n) {
-    return n.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,10 +64,42 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildEmpty() {
-    return const Center(
-      child: Text(
-        '이번 달 예산을 설정해주세요!',
-        style: TextStyle(color: Colors.grey, fontSize: 14),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '이번 달 예산을 설정해주세요!',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => context.go('/'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF534AB7),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('설정하기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -86,8 +113,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     }
     final totalSpent = spentByCategory.values.fold(0, (sum, v) => sum + v);
     final actualSavings = (budget.income - totalSpent).clamp(0, budget.income);
-    final achievementRate = budget.savingsGoal > 0
-        ? (actualSavings / budget.savingsGoal).clamp(0.0, 1.0)
+    final monthlySavingsGoal = budget.savingsGoal ~/ budget.savingsMonths;
+    final achievementRate = monthlySavingsGoal > 0
+        ? (actualSavings / monthlySavingsGoal).clamp(0.0, 1.0)
         : 0.0;
 
     final overBudgetEntries = budget.categoryBudgets.entries
@@ -100,7 +128,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryCard(totalSpent, achievementRate, actualSavings, budget.savingsGoal),
+          _buildSummaryCard(totalSpent, achievementRate, actualSavings, monthlySavingsGoal),
           const SizedBox(height: 20),
           _buildSectionLabel('AI 피드백'),
           const SizedBox(height: 8),
@@ -151,7 +179,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     const Text('총 지출', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 4),
                     Text(
-                      '${_formatNumber(totalSpent)}원',
+                      '${formatNumber(totalSpent)}원',
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -180,7 +208,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              '실제 저축: ${_formatNumber(actualSavings)}원 / 목표: ${_formatNumber(savingsGoal)}원',
+              '실제 저축: ${formatNumber(actualSavings)}원 / 목표: ${formatNumber(savingsGoal)}원',
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ),
@@ -228,7 +256,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
           Text(
-            '+${_formatNumber(overAmount)}원 초과',
+            '+${formatNumber(overAmount)}원 초과',
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -269,7 +297,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           const SizedBox(width: 12),
           Text(
-            '${_formatNumber(expense.amount)}원',
+            '${formatNumber(expense.amount)}원',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
         ],

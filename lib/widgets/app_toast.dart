@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 
 class AppToast {
+  static OverlayEntry? _current;
+
   static void show(BuildContext context, String message) {
+    _current?.remove();
+    _current = null;
+
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => _ToastWidget(
         message: message,
-        onDismissed: () => entry.remove(),
+        onDismissed: () {
+          entry.remove();
+          if (_current == entry) _current = null;
+        },
       ),
     );
+    _current = entry;
     overlay.insert(entry);
   }
 }

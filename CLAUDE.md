@@ -70,7 +70,7 @@ flutter pub upgrade
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
 ```
-Also add `CLAUDE_API_KEY` to `AiService._apiKey` (currently empty string).
+Also add `CLAUDE_API_KEY` to `.env` (loaded via `dotenv.env['CLAUDE_API_KEY']` in `AiService`).
 
 `.env` is registered in `pubspec.yaml` under `flutter.assets`.
 
@@ -86,21 +86,18 @@ Also add `CLAUDE_API_KEY` to `AiService._apiKey` (currently empty string).
 - Cards: `borderRadius 12–16`, white background
 - Primary button: `height 52`, `borderRadius 12`, full width
 
+## Shared Utilities
+
+- `lib/utils/format.dart` — `formatNumber(int n)` (comma-separated, used in all screens)
+- `lib/utils/category.dart` — `categoryMeta`, `categoryList`, `categoryEmoji()`, `progressColor()` (shared across HomeScreen, InputScreen)
+
 ## Screen Status
 
 | Screen | Status |
 |---|---|
-| OnboardingScreen | 완성 — 입력 → 예산 배분 → Supabase 저장 → /home |
-| HomeScreen | 부분 완성 — 예산 로드 O, 실제 지출(spent) 연결 X (현재 0 하드코딩) |
-| InputScreen | UI 완성 — AI 분류·저장 미연결 |
-| AnalysisScreen | UI 완성 — 하드코딩 데이터, 실제 연결 X |
+| OnboardingScreen | 완성 |
+| HomeScreen | 완성 — 실지출 연결, refreshTrigger 패턴 |
+| InputScreen | 완성 — AI 분류(debounce 800ms) + Supabase 저장 |
+| AnalysisScreen | 완성 — 실데이터 연결, 저축 달성률 월별 목표 기준 |
+| SettingsScreen | 완성 — 예산 재설정, 자동이월 토글, 지출 초기화 |
 | ShellScreen | 완성 — PageView 탭 관리 |
-
-## Remaining Work
-
-1. `InputScreen` — `AiService.classifyExpense()` 연동 + `StorageService.saveExpense()` 연결
-2. `HomeScreen` — `getExpenses()`로 카테고리별 실지출 계산
-3. `AnalysisScreen` — 실제 데이터 연결
-4. `AiService._apiKey` — 실제 Claude API 키 입력
-5. `budget_gauge.dart`, `category_card.dart` — 미구현 위젯
-6. 설정 화면 구현

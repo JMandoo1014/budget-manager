@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../services/storage_service.dart';
+import '../utils/category.dart' as cat;
+import '../utils/format.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.refreshTrigger = 0});
@@ -19,14 +21,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Expense> _expenses = [];
   bool _isLoading = true;
 
-  static const _categoryMeta = {
-    '식비': ('🍚', Color(0xFF1D9E75)),
-    '술': ('🍺', Color(0xFFE24B4A)),
-    '교통': ('🚌', Color(0xFF1D9E75)),
-    '카페': ('☕', Color(0xFFEF9F27)),
-    '쇼핑': ('🛍', Color(0xFF534AB7)),
-    '기타': ('📦', Color(0xFF9E9E9E)),
-  };
 
   @override
   void initState() {
@@ -58,13 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _formatNumber(int n) {
-    return n.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-  }
-
   String get _monthLabel => '${DateTime.now().month}월 현황';
 
   String get _daysLeft {
@@ -73,13 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${lastDay.day - now.day + 1}일 남음';
   }
 
-  Color _progressColor(int spent, int limit) {
-    if (limit == 0) return const Color(0xFF1D9E75);
-    final ratio = spent / limit;
-    if (ratio >= 1.0) return const Color(0xFFE24B4A);
-    if (ratio >= 0.8) return const Color(0xFFEF9F27);
-    return const Color(0xFF1D9E75);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,11 +158,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           ...budget.categoryBudgets.entries.map((entry) {
-            final meta = _categoryMeta[entry.key];
-            final emoji = meta?.$1 ?? '📌';
+            final emoji = cat.categoryEmoji(entry.key);
             final limit = entry.value;
             final spent = spentByCategory[entry.key] ?? 0;
-            final color = _progressColor(spent, limit);
+            final color = cat.progressColor(spent, limit);
             return _buildCategoryCard(emoji, entry.key, spent, limit, color);
           }),
           const SizedBox(height: 100),
@@ -208,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '${_formatNumber(remaining)}원',
+            '${formatNumber(remaining)}원',
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -227,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '${(usedRatio * 100).toStringAsFixed(0)}% 사용  •  총 예산 ${_formatNumber(totalBudget)}원',
+            '${(usedRatio * 100).toStringAsFixed(0)}% 사용  •  총 예산 ${formatNumber(totalBudget)}원',
             style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
         ],
@@ -254,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Text(
-                '${_formatNumber(spent)}원 / ${_formatNumber(limit)}원',
+                '${formatNumber(spent)}원 / ${formatNumber(limit)}원',
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ],

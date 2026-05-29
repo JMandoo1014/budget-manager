@@ -5,6 +5,10 @@ import '../models/budget.dart';
 import '../models/expense.dart';
 
 class StorageService {
+  static final StorageService _instance = StorageService._internal();
+  factory StorageService() => _instance;
+  StorageService._internal();
+
   static const _userId = 'local_user';
 
   static String get _url => dotenv.env['SUPABASE_URL'] ?? '';

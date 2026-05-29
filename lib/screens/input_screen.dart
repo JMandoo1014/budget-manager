@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../models/expense.dart';
 import '../services/ai_service.dart';
 import '../services/storage_service.dart';
+import '../utils/category.dart' as cat;
+import '../utils/format.dart';
 import '../widgets/app_toast.dart';
 
 class InputScreen extends StatefulWidget {
@@ -26,15 +28,6 @@ class _InputScreenState extends State<InputScreen> {
   bool _isClassifying = false;
   bool _isSaving = false;
 
-  static const _categories = [
-    ('🍚', '식비'),
-    ('🍺', '술'),
-    ('🚌', '교통'),
-    ('☕', '카페'),
-    ('🛍', '쇼핑'),
-    ('📦', '기타'),
-  ];
-
   static const _warningCategories = {'술', '카페'};
 
   @override
@@ -47,13 +40,9 @@ class _InputScreenState extends State<InputScreen> {
   bool get _hasInput => _input.trim().isNotEmpty;
   bool get _showWarning => _warningCategories.contains(_category);
 
-  String get _categoryEmoji =>
-      _categories.firstWhere((e) => e.$2 == _category, orElse: () => ('📦', '기타')).$1;
+  String get _categoryEmoji => cat.categoryEmoji(_category);
 
-  String get _formattedAmount {
-    if (_amount == 0) return '0원';
-    return '${_amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}원';
-  }
+  String get _formattedAmount => _amount == 0 ? '0원' : '${formatNumber(_amount)}원';
 
   void _onInputChanged(String value) {
     setState(() => _input = value);
@@ -89,7 +78,6 @@ class _InputScreenState extends State<InputScreen> {
       return;
     }
 
-    print('저장 시작');
     setState(() => _isSaving = true);
 
     try {
@@ -99,7 +87,6 @@ class _InputScreenState extends State<InputScreen> {
         amount: _amount,
       );
       await StorageService().saveExpense(expense);
-      print('저장 성공');
       if (mounted) {
         _controller.clear();
         setState(() {
@@ -110,11 +97,9 @@ class _InputScreenState extends State<InputScreen> {
           _isClassifying = false;
           _isSaving = false;
         });
-        print('홈으로 이동');
         context.go('/home');
       }
     } catch (e) {
-      print('저장 실패: $e');
       if (mounted) {
         setState(() => _isSaving = false);
         _showToast('저장에 실패했습니다.');
@@ -146,7 +131,7 @@ class _InputScreenState extends State<InputScreen> {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: _categories.map((cat) {
+                children: cat.categoryList.map((cat) {
                   final isSelected = _category == cat.$2;
                   return GestureDetector(
                     onTap: () {
