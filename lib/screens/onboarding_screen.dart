@@ -29,6 +29,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _formatter = NumberFormat('#,###');
 
   @override
+  void initState() {
+    super.initState();
+    _loadPreviousPrefs();
+  }
+
+  Future<void> _loadPreviousPrefs() async {
+    final prefs = await StorageService().loadPreviousBudgetPrefs();
+    if (prefs == null || !mounted) return;
+    setState(() {
+      final goal = prefs['savingsGoal'] as int;
+      final months = prefs['savingsMonths'] as int;
+      final patterns = List<String>.from(prefs['spendingPatterns'] as List);
+      _savingsController.text = _formatter.format(goal);
+      _periodController.text = months.toString();
+      _selectedPatterns.addAll(patterns);
+      _autoRollover = prefs['autoRollover'] as bool;
+    });
+  }
+
+  @override
   void dispose() {
     _incomeController.dispose();
     _savingsController.dispose();

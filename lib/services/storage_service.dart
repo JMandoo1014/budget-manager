@@ -1,4 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/budget.dart';
@@ -66,10 +67,33 @@ class StorageService {
     if (prevData.isEmpty) return null;
 
     final prevBudget = Budget.fromJson(prevData.first);
-    if (!prevBudget.autoRollover) return null;
+    if (!prevBudget.autoRollover) {
+      await _savePreviousBudgetPrefs(prevBudget);
+      return null;
+    }
 
     await saveBudget(prevBudget, date: now);
     return prevBudget;
+  }
+
+  Future<void> _savePreviousBudgetPrefs(Budget budget) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('prev_savings_goal', budget.savingsGoal);
+    await prefs.setInt('prev_savings_months', budget.savingsMonths);
+    await prefs.setStringList('prev_spending_patterns', budget.spendingPatterns);
+    await prefs.setBool('prev_auto_rollover', budget.autoRollover);
+  }
+
+  Future<Map<String, dynamic>?> loadPreviousBudgetPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savingsGoal = prefs.getInt('prev_savings_goal');
+    if (savingsGoal == null) return null;
+    return {
+      'savingsGoal': savingsGoal,
+      'savingsMonths': prefs.getInt('prev_savings_months') ?? 12,
+      'spendingPatterns': prefs.getStringList('prev_spending_patterns') ?? [],
+      'autoRollover': prefs.getBool('prev_auto_rollover') ?? true,
+    };
   }
 
   Future<void> updateAutoRollover(bool value) async {
