@@ -21,6 +21,7 @@ class InputScreen extends StatefulWidget {
 class _InputScreenState extends State<InputScreen> {
   final _controller = TextEditingController();
   Timer? _debounceTimer;
+  int _classifyGeneration = 0;
 
   String _input = '';
   String _category = '기타';
@@ -59,10 +60,11 @@ class _InputScreenState extends State<InputScreen> {
       return;
     }
 
+    final generation = ++_classifyGeneration;
     setState(() => _isClassifying = true);
     _debounceTimer = Timer(const Duration(milliseconds: 800), () async {
       final result = await AiService().classifyExpense(value.trim());
-      if (mounted) {
+      if (mounted && generation == _classifyGeneration) {
         setState(() {
           _category = result['category'] as String? ?? '기타';
           _amount = (result['amount'] as num?)?.toInt() ?? 0;
@@ -122,6 +124,7 @@ class _InputScreenState extends State<InputScreen> {
           .where((e) => e.category == category)
           .fold(0, (sum, e) => sum + e.amount);
 
+      print('카테고리: $category, 지출합계: $totalSpent, 한도: $limit');
       if (totalSpent > limit) {
         await NotificationService().showOverBudgetNotification(category, totalSpent - limit);
       }

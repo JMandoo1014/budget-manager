@@ -28,6 +28,11 @@ class NotificationService {
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
 
+    final bool? granted = await _plugin
+        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
+    print('알림 권한: $granted');
+
     await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(
@@ -42,6 +47,7 @@ class NotificationService {
   }
 
   Future<void> showOverBudgetNotification(String category, int over) async {
+    print('알림 발송 시도: $category $over원 초과');
     await _plugin.show(
       0,
       '⚠️ 예산 초과!',
@@ -53,9 +59,14 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
       ),
     );
+    print('알림 show() 완료');
   }
 
   Future<void> scheduleDailyReminder() async {
