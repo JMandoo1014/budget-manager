@@ -43,6 +43,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     context.push('/');
   }
 
+  Future<void> _onToggleAutoRollover(bool value) async {
+    try {
+      await StorageService().updateAutoRollover(value);
+      if (mounted) setState(() => _budget = _budget?.copyWith(autoRollover: value));
+    } catch (e) {
+      print('자동 이월 변경 오류: $e');
+      if (mounted) AppToast.show(context, '변경에 실패했어요.');
+    }
+  }
+
   Future<void> _onDeleteExpenses() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -181,6 +191,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _onResetBudget,
           ),
           const Divider(height: 1, indent: 56, endIndent: 16),
+          _buildToggleItem(
+            icon: Icons.autorenew_rounded,
+            label: '자동 이월',
+            value: _budget?.autoRollover ?? true,
+            onChanged: _budget != null ? _onToggleAutoRollover : null,
+          ),
+          const Divider(height: 1, indent: 56, endIndent: 16),
           _buildMenuItem(
             icon: Icons.delete_outline_rounded,
             label: '이번 달 지출 내역 초기화',
@@ -217,6 +234,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: TextStyle(fontSize: 14, color: color),
       ),
       trailing: Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    );
+  }
+
+  Widget _buildToggleItem({
+    required IconData icon,
+    required String label,
+    required bool value,
+    ValueChanged<bool>? onChanged,
+  }) {
+    return ListTile(
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEEDFE),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, size: 18, color: Colors.black87),
+      ),
+      title: Text(label, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+        activeThumbColor: const Color(0xFF534AB7),
+        activeTrackColor: const Color(0xFFEEEDFE),
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }

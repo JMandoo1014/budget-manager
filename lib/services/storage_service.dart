@@ -17,18 +17,19 @@ class StorageService {
     await Supabase.initialize(url: _url, anonKey: _anonKey);
   }
 
-  Future<void> saveBudget(Budget budget) async {
-    final now = DateTime.now();
+  Future<void> saveBudget(Budget budget, {DateTime? date}) async {
+    final target = date ?? DateTime.now();
     await _client.from('budgets').upsert(
       {
         'user_id': _userId,
-        'year': now.year,
-        'month': now.month,
+        'year': target.year,
+        'month': target.month,
         'income': budget.income,
         'savings_goal': budget.savingsGoal,
         'savings_months': budget.savingsMonths,
         'spending_patterns': budget.spendingPatterns,
         'category_budgets': budget.categoryBudgets,
+        'auto_rollover': budget.autoRollover,
       },
       onConflict: 'user_id,month,year',
     );
@@ -44,8 +45,37 @@ class StorageService {
         .eq('month', now.month)
         .limit(1);
 
-    if (data.isEmpty) return null;
-    return Budget.fromJson(data.first);
+    if (data.isNotEmpty) return Budget.fromJson(data.first);
+
+    // 이번 달 예산 없음 → 지난 달 자동 이월 확인
+    final prevMonth = now.month == 1 ? 12 : now.month - 1;
+    final prevYear = now.month == 1 ? now.year - 1 : now.year;
+
+    final prevData = await _client
+        .from('budgets')
+        .select()
+        .eq('user_id', _userId)
+        .eq('year', prevYear)
+        .eq('month', prevMonth)
+        .limit(1);
+
+    if (prevData.isEmpty) return null;
+
+    final prevBudget = Budget.fromJson(prevData.first);
+    if (!prevBudget.autoRollover) return null;
+
+    await saveBudget(prevBudget, date: now);
+    return prevBudget;
+  }
+
+  Future<void> updateAutoRollover(bool value) async {
+    final now = DateTime.now();
+    await _client
+        .from('budgets')
+        .update({'auto_rollover': value})
+        .eq('user_id', _userId)
+        .eq('year', now.year)
+        .eq('month', now.month);
   }
 
   Future<void> saveExpense(Expense expense) async {
