@@ -23,7 +23,11 @@ class StorageService {
       'user_id': _userId,
       'year': now.year,
       'month': now.month,
-      ...budget.toJson(),
+      'income': budget.income,
+      'savings_goal': budget.savingsGoal,
+      'savings_months': budget.savingsMonths,
+      'spending_patterns': budget.spendingPatterns,
+      'category_budgets': budget.categoryBudgets,
     });
   }
 
@@ -35,10 +39,10 @@ class StorageService {
         .eq('user_id', _userId)
         .eq('year', now.year)
         .eq('month', now.month)
-        .maybeSingle();
+        .limit(1);
 
-    if (data == null) return null;
-    return Budget.fromJson(data);
+    if (data.isEmpty) return null;
+    return Budget.fromJson(data.first);
   }
 
   Future<void> saveExpense(Expense expense) async {

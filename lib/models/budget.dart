@@ -47,10 +47,10 @@ class Budget {
   factory Budget.fromJson(Map<String, dynamic> json) {
     return Budget(
       income: json['income'] as int,
-      savingsGoal: json['savingsGoal'] as int,
-      savingsMonths: json['savingsMonths'] as int,
-      spendingPatterns: List<String>.from(json['spendingPatterns'] as List),
-      categoryBudgets: Map<String, int>.from(json['categoryBudgets'] as Map),
+      savingsGoal: json['savings_goal'] as int,
+      savingsMonths: json['savings_months'] as int,
+      spendingPatterns: List<String>.from(json['spending_patterns'] as List),
+      categoryBudgets: Map<String, int>.from(json['category_budgets'] as Map),
     );
   }
 }
