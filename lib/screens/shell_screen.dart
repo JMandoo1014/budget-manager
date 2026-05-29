@@ -120,12 +120,12 @@ class _ShellScreenState extends State<ShellScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEEEDFE),
+                                  color: const Color(0xFFE1F5EE),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Icon(
                                   tab.selected,
-                                  color: const Color(0xFF534AB7),
+                                  color: const Color(0xFF1D9E75),
                                   size: 24,
                                 ),
                               ),

@@ -95,7 +95,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
               child: Text(
                 widget.message,
                 style: const TextStyle(
-                  color: Color(0xFF534AB7),
+                  color: Color(0xFF1D9E75),
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),

@@ -80,10 +80,10 @@ class BudgetManagerApp extends StatelessWidget {
       themeMode: ThemeMode.light,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF534AB7),
+          seedColor: const Color(0xFF1D9E75),
           brightness: Brightness.light,
         ),
-        primaryColor: const Color(0xFF534AB7),
+        primaryColor: const Color(0xFF1D9E75),
         useMaterial3: true,
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {

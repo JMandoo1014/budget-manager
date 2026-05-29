@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ElevatedButton(
                   onPressed: () => context.go('/'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF534AB7),
+                    backgroundColor: const Color(0xFF1D9E75),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
@@ -191,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF534AB7),
+              color: Color(0xFF1D9E75),
             ),
           ),
           const SizedBox(height: 12),
@@ -200,8 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: LinearProgressIndicator(
               value: usedRatio,
               minHeight: 8,
-              backgroundColor: const Color(0xFFEEEDFE),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF534AB7)),
+              backgroundColor: const Color(0xFFE1F5EE),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1D9E75)),
             ),
           ),
           const SizedBox(height: 6),
