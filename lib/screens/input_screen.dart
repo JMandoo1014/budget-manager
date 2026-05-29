@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/expense.dart';
 import '../services/ai_service.dart';
+import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
@@ -20,6 +21,7 @@ class InputScreen extends StatefulWidget {
 class _InputScreenState extends State<InputScreen> {
   final _controller = TextEditingController();
   Timer? _debounceTimer;
+  int _classifyGeneration = 0;
 
   String _input = '';
   String _category = '기타';
@@ -58,10 +60,11 @@ class _InputScreenState extends State<InputScreen> {
       return;
     }
 
+    final generation = ++_classifyGeneration;
     setState(() => _isClassifying = true);
     _debounceTimer = Timer(const Duration(milliseconds: 800), () async {
       final result = await AiService().classifyExpense(value.trim());
-      if (mounted) {
+      if (mounted && generation == _classifyGeneration) {
         setState(() {
           _category = result['category'] as String? ?? '기타';
           _amount = (result['amount'] as num?)?.toInt() ?? 0;
@@ -87,6 +90,7 @@ class _InputScreenState extends State<InputScreen> {
         amount: _amount,
       );
       await StorageService().saveExpense(expense);
+      await _checkAndNotifyOverBudget(expense.category);
       if (mounted) {
         _controller.clear();
         setState(() {
@@ -105,6 +109,26 @@ class _InputScreenState extends State<InputScreen> {
         _showToast('저장에 실패했습니다.');
       }
     }
+  }
+
+  Future<void> _checkAndNotifyOverBudget(String category) async {
+    try {
+      final now = DateTime.now();
+      final budget = await StorageService().getCurrentBudget();
+      if (budget == null) return;
+      final limit = budget.categoryBudgets[category];
+      if (limit == null) return;
+
+      final expenses = await StorageService().getExpenses(month: now.month, year: now.year);
+      final totalSpent = expenses
+          .where((e) => e.category == category)
+          .fold(0, (sum, e) => sum + e.amount);
+
+      print('카테고리: $category, 지출합계: $totalSpent, 한도: $limit');
+      if (totalSpent > limit) {
+        await NotificationService().showOverBudgetNotification(category, totalSpent - limit);
+      }
+    } catch (_) {}
   }
 
   void _showToast(String message) => AppToast.show(context, message);

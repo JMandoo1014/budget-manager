@@ -33,14 +33,17 @@ class AiService {
             {'role': 'user', 'content': rawInput},
           ],
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final text = (data['content'] as List).first['text'] as String;
         return jsonDecode(text) as Map<String, dynamic>;
+      } else if (response.statusCode >= 400 && response.statusCode < 500) {
+        debugPrint('classifyExpense 클라이언트 오류 (${response.statusCode}): ${response.body}');
+        return _fallbackClassify(rawInput);
       } else {
-        debugPrint('classifyExpense 오류: ${response.statusCode} ${response.body}');
+        debugPrint('classifyExpense 서버 오류 (${response.statusCode}): ${response.body}');
       }
     } catch (e) {
       debugPrint('classifyExpense 예외: $e');
