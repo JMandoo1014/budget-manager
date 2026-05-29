@@ -23,6 +23,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _selectedPatterns = <String>{};
   bool _isLoading = false;
   bool _autoRollover = true;
+  String? _incomeError;
+  String? _savingsError;
 
   final _formatter = NumberFormat('#,###');
 
@@ -40,15 +42,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final digits = value.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.isEmpty) {
       controller.value = const TextEditingValue(text: '');
-      return;
+    } else {
+      final number = int.tryParse(digits);
+      if (number != null) {
+        final formatted = _formatter.format(number);
+        controller.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
     }
-    final number = int.tryParse(digits);
-    if (number == null) return;
-    final formatted = _formatter.format(number);
-    controller.value = TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
+    _validateFields();
+  }
+
+  void _validateFields() {
+    final income = _parseFormatted(_incomeController.text);
+    final savings = _parseFormatted(_savingsController.text);
+
+    String? incomeError;
+    String? savingsError;
+
+    if (_incomeController.text.isNotEmpty && income == 0) {
+      incomeError = '수입을 입력해주세요';
+    }
+    if (_savingsController.text.isNotEmpty) {
+      if (savings == 0) {
+        savingsError = '저축 목표를 입력해주세요';
+      } else if (income > 0 && savings >= income) {
+        savingsError = '저축 목표는 수입보다 작아야 해요';
+      }
+    }
+
+    setState(() {
+      _incomeError = incomeError;
+      _savingsError = savingsError;
+    });
   }
 
   int _parseFormatted(String text) {
@@ -73,12 +101,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final savings = _parseFormatted(_savingsController.text);
     final months = int.tryParse(_periodController.text.trim()) ?? 0;
 
-    if (income == 0 || savings == 0 || months == 0) {
+    if (income == 0 || savings == 0) {
       _showToast('모든 항목을 입력해주세요!');
       return;
     }
+    if (months == 0) {
+      _showToast('목표 기간을 1개월 이상 입력해주세요!');
+      return;
+    }
     if (savings >= income) {
-      _showToast('저축 목표가 수입보다 클 수 없어요.');
+      _showToast('저축 목표가 수입보다 클 수 없어요!');
       return;
     }
 
@@ -145,11 +177,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _buildFormattedTextField(
                 controller: _incomeController,
                 label: '이번 달 수입 (원)',
+                errorText: _incomeError,
               ),
               const SizedBox(height: 16),
               _buildFormattedTextField(
                 controller: _savingsController,
                 label: '저축 목표 (원)',
+                errorText: _savingsError,
               ),
               const SizedBox(height: 16),
               _buildPlainTextField(
@@ -247,6 +281,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildFormattedTextField({
     required TextEditingController controller,
     required String label,
+    String? errorText,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -264,7 +299,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
         onChanged: (value) => _onNumberChanged(controller, value),
-        decoration: _inputDecoration(label),
+        decoration: _inputDecoration(label, errorText: errorText),
       ),
     );
   }
@@ -293,9 +328,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {String? errorText}) {
     return InputDecoration(
       labelText: label,
+      errorText: errorText,
       labelStyle: const TextStyle(color: Color(0xFF999999), fontSize: 14),
       floatingLabelStyle: const TextStyle(color: Color(0xFF1D9E75), fontSize: 14),
       filled: true,
@@ -307,6 +343,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Color(0xFF1D9E75), width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFE24B4A), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFE24B4A), width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
     );

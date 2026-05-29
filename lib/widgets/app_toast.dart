@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppToast {
   static OverlayEntry? _current;
 
-  static void show(BuildContext context, String message) {
+  static void show(BuildContext context, String message, {bool isError = false}) {
     _current?.remove();
     _current = null;
 
@@ -12,6 +12,7 @@ class AppToast {
     entry = OverlayEntry(
       builder: (_) => _ToastWidget(
         message: message,
+        isError: isError,
         onDismissed: () {
           entry.remove();
           if (_current == entry) _current = null;
@@ -24,9 +25,10 @@ class AppToast {
 }
 
 class _ToastWidget extends StatefulWidget {
-  const _ToastWidget({required this.message, required this.onDismissed});
+  const _ToastWidget({required this.message, required this.isError, required this.onDismissed});
 
   final String message;
+  final bool isError;
   final VoidCallback onDismissed;
 
   @override
@@ -69,6 +71,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = widget.isError ? const Color(0xFFE24B4A) : const Color(0xFF1D9E75);
     return Positioned(
       left: 24,
       right: 24,
@@ -82,11 +85,11 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: bgColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
+                    color: bgColor.withValues(alpha: 0.35),
                     blurRadius: 20,
                     offset: const Offset(0, 4),
                   ),
@@ -95,7 +98,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
               child: Text(
                 widget.message,
                 style: const TextStyle(
-                  color: Color(0xFF1D9E75),
+                  color: Colors.white,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),

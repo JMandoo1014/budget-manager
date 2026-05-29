@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../models/budget.dart';
 import '../models/expense.dart';
@@ -20,7 +21,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Budget? _budget;
   List<Expense> _expenses = [];
   bool _isLoading = true;
+  bool _hasError = false;
 
+  final _dateFormat = DateFormat('MM/dd HH:mm');
 
   @override
   void initState() {
@@ -37,18 +40,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    final now = DateTime.now();
-    final budgetFuture = StorageService().getCurrentBudget();
-    final expensesFuture = StorageService().getExpenses(month: now.month, year: now.year);
-    final budget = await budgetFuture;
-    final expenses = await expensesFuture;
-    if (mounted) {
-      setState(() {
-        _budget = budget;
-        _expenses = expenses;
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+    try {
+      final now = DateTime.now();
+      final budgetFuture = StorageService().getCurrentBudget();
+      final expensesFuture = StorageService().getExpenses(month: now.month, year: now.year);
+      final budget = await budgetFuture;
+      final expenses = await expensesFuture;
+      if (mounted) {
+        setState(() {
+          _budget = budget;
+          _expenses = expenses;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _isLoading = false; _hasError = true; });
     }
   }
 
@@ -84,10 +94,80 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _budget == null
-              ? _buildEmpty()
-              : _buildContent(),
+          ? _buildSkeleton()
+          : _hasError
+              ? _buildError()
+              : _budget == null
+                  ? _buildEmpty()
+                  : RefreshIndicator(
+                      onRefresh: _loadData,
+                      color: const Color(0xFF1D9E75),
+                      child: _buildContent(),
+                    ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    const grey = Color(0xFFE8E8E8);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 130,
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(16)),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: 70,
+            height: 14,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(4)),
+          ),
+          ...List.generate(5, (i) => Container(
+            height: 80,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(12)),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('😢', style: TextStyle(fontSize: 40)),
+            const SizedBox(height: 12),
+            const Text(
+              '데이터를 불러오지 못했어요.',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            const Text('다시 시도해주세요.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 44,
+              child: ElevatedButton(
+                onPressed: _loadData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1D9E75),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                ),
+                child: const Text('다시 시도', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -97,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(24),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -105,12 +185,20 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Text('💰', style: TextStyle(fontSize: 40)),
+              const SizedBox(height: 12),
               const Text(
                 '이번 달 예산을 설정해주세요!',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
+              const Text(
+                '수입과 저축 목표를 입력하면\nAI가 예산을 짜드려요',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -162,7 +250,8 @@ class _HomeScreenState extends State<HomeScreen> {
             final limit = entry.value;
             final spent = spentByCategory[entry.key] ?? 0;
             final color = cat.progressColor(spent, limit);
-            return _buildCategoryCard(emoji, entry.key, spent, limit, color);
+            final categoryExpenses = _expenses.where((e) => e.category == entry.key).toList();
+            return _buildCategoryCard(emoji, entry.key, spent, limit, color, categoryExpenses);
           }),
           const SizedBox(height: 100),
         ],
@@ -214,41 +303,132 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryCard(String emoji, String name, int spent, int limit, Color color) {
+  Widget _buildCategoryCard(String emoji, String name, int spent, int limit, Color color, List<Expense> expenses) {
     final progress = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+    final isOver = spent > limit;
+    return GestureDetector(
+      onTap: () => _showCategoryDetail(name, emoji, spent, limit, expenses),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '$emoji $name',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                    if (isOver) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFE24B4A)),
+                    ],
+                  ],
+                ),
+                Text(
+                  '${formatNumber(spent)}원 / ${formatNumber(limit)}원',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: const Color(0xFFF0F0F0),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    );
+  }
+
+  void _showCategoryDetail(String name, String emoji, int spent, int limit, List<Expense> expenses) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$emoji $name',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '$emoji $name',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${formatNumber(spent)}원 / ${formatNumber(limit)}원',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ],
               ),
-              Text(
-                '${formatNumber(spent)}원 / ${formatNumber(limit)}원',
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              if (expenses.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text('지출 내역이 없어요.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 280),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: expenses.length,
+                    separatorBuilder: (context, idx) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final e = expenses[i];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(e.rawInput,
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis),
+                                  Text(_dateFormat.format(e.createdAt),
+                                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text('${formatNumber(e.amount)}원',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              backgroundColor: const Color(0xFFF0F0F0),
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

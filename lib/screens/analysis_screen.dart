@@ -6,6 +6,7 @@ import '../models/budget.dart';
 import '../models/expense.dart';
 import '../services/storage_service.dart';
 import '../utils/format.dart';
+import '../widgets/app_toast.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({super.key});
@@ -18,6 +19,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Budget? _budget;
   List<Expense> _expenses = [];
   bool _isLoading = true;
+  bool _hasError = false;
 
   final _dateFormat = DateFormat('MM/dd HH:mm');
 
@@ -27,19 +29,39 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     _loadData();
   }
 
+  Future<void> _deleteExpense(Expense expense) async {
+    setState(() => _expenses.removeWhere((e) => e.id == expense.id));
+    try {
+      await StorageService().deleteExpense(expense.id);
+      if (mounted) AppToast.show(context, '지출이 삭제됐어요.');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _expenses.insert(0, expense));
+        AppToast.show(context, '삭제에 실패했어요.');
+      }
+    }
+  }
+
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    final now = DateTime.now();
-    final budgetFuture = StorageService().getCurrentBudget();
-    final expensesFuture = StorageService().getExpenses(month: now.month, year: now.year);
-    final budget = await budgetFuture;
-    final expenses = await expensesFuture;
-    if (mounted) {
-      setState(() {
-        _budget = budget;
-        _expenses = expenses;
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+    try {
+      final now = DateTime.now();
+      final budgetFuture = StorageService().getCurrentBudget();
+      final expensesFuture = StorageService().getExpenses(month: now.month, year: now.year);
+      final budget = await budgetFuture;
+      final expenses = await expensesFuture;
+      if (mounted) {
+        setState(() {
+          _budget = budget;
+          _expenses = expenses;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _isLoading = false; _hasError = true; });
     }
   }
 
@@ -56,10 +78,87 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _budget == null
-              ? _buildEmpty()
-              : _buildContent(),
+          ? _buildSkeleton()
+          : _hasError
+              ? _buildError()
+              : _budget == null
+                  ? _buildEmpty()
+                  : _buildContent(),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    const grey = Color(0xFFE8E8E8);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 120,
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(16)),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: 70,
+            height: 14,
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(4)),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 60,
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(12)),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: 100,
+            height: 14,
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(4)),
+          ),
+          const SizedBox(height: 8),
+          ...List.generate(3, (i) => Container(
+            height: 68,
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(12)),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('😢', style: TextStyle(fontSize: 40)),
+            const SizedBox(height: 12),
+            const Text(
+              '데이터를 불러오지 못했어요.',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            const Text('다시 시도해주세요.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 44,
+              child: ElevatedButton(
+                onPressed: _loadData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1D9E75),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                ),
+                child: const Text('다시 시도', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -150,11 +249,25 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           _buildSectionLabel('전체 지출 내역'),
           const SizedBox(height: 8),
           if (_expenses.isEmpty)
-            _buildInfoBox('아직 지출 내역이 없어요.')
+            _buildEmptyExpenses()
           else
             ..._expenses.map((e) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: _buildExpenseCard(e),
+                  child: Dismissible(
+                    key: ValueKey(e.id),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (_) => _deleteExpense(e),
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE24B4A),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                    ),
+                    child: _buildExpenseCard(e),
+                  ),
                 )),
         ],
       ),
@@ -300,6 +413,24 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             '${formatNumber(expense.amount)}원',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyExpenses() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Column(
+        children: [
+          Text('🎉', style: TextStyle(fontSize: 36)),
+          SizedBox(height: 8),
+          Text('이번 달 지출 내역이 없어요!', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
         ],
       ),
     );

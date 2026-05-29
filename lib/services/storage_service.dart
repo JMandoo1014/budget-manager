@@ -82,6 +82,10 @@ class StorageService {
         .eq('month', now.month);
   }
 
+  Future<void> deleteExpense(String id) async {
+    await _client.from('expenses').delete().eq('id', id);
+  }
+
   Future<void> saveExpense(Expense expense) async {
     await _client.from('expenses').insert({
       'user_id': _userId,
