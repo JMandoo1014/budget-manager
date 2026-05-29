@@ -13,7 +13,8 @@ class Budget {
     required this.categoryBudgets,
   });
 
-  int get totalBudget => income - savingsGoal;
+  int get monthlyBudget => income - (savingsGoal ~/ savingsMonths);
+  int get totalBudget => monthlyBudget;
 
   Budget copyWith({
     int? income,

@@ -6,6 +6,7 @@ import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/input_screen.dart';
 import 'screens/analysis_screen.dart';
+import 'screens/settings_screen.dart';
 import 'services/storage_service.dart';
 
 final _router = GoRouter(
@@ -50,11 +51,8 @@ final _router = GoRouter(
           routes: [
             GoRoute(
               path: '/settings',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: Scaffold(
-                  body: Center(child: Text('설정')),
-                ),
-              ),
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: SettingsScreen()),
             ),
           ],
         ),

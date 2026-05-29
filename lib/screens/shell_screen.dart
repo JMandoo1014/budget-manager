@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'home_screen.dart';
 import 'input_screen.dart';
 import 'analysis_screen.dart';
+import 'settings_screen.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key, required this.navigationShell});
@@ -80,7 +81,7 @@ class _ShellScreenState extends State<ShellScreen> {
               HomeScreen(refreshTrigger: _homeRefreshKey),
               const InputScreen(),
               const AnalysisScreen(),
-              const _SettingsPlaceholder(),
+              const SettingsScreen(),
             ],
           ),
           Positioned(
@@ -165,13 +166,3 @@ class _TabItem {
   });
 }
 
-class _SettingsPlaceholder extends StatelessWidget {
-  const _SettingsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('설정')),
-    );
-  }
-}

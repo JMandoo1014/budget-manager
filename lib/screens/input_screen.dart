@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../models/expense.dart';
 import '../services/ai_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/app_toast.dart';
 
 class InputScreen extends StatefulWidget {
   const InputScreen({super.key});
@@ -121,21 +122,7 @@ class _InputScreenState extends State<InputScreen> {
     }
   }
 
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Color(0xFF534AB7), fontWeight: FontWeight.w500),
-        ),
-        backgroundColor: Colors.white,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-        elevation: 4,
-      ),
-    );
-  }
+  void _showToast(String message) => AppToast.show(context, message);
 
   void _showCategorySheet() {
     showModalBottomSheet(

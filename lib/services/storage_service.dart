@@ -19,16 +19,19 @@ class StorageService {
 
   Future<void> saveBudget(Budget budget) async {
     final now = DateTime.now();
-    await _client.from('budgets').insert({
-      'user_id': _userId,
-      'year': now.year,
-      'month': now.month,
-      'income': budget.income,
-      'savings_goal': budget.savingsGoal,
-      'savings_months': budget.savingsMonths,
-      'spending_patterns': budget.spendingPatterns,
-      'category_budgets': budget.categoryBudgets,
-    });
+    await _client.from('budgets').upsert(
+      {
+        'user_id': _userId,
+        'year': now.year,
+        'month': now.month,
+        'income': budget.income,
+        'savings_goal': budget.savingsGoal,
+        'savings_months': budget.savingsMonths,
+        'spending_patterns': budget.spendingPatterns,
+        'category_budgets': budget.categoryBudgets,
+      },
+      onConflict: 'user_id,month,year',
+    );
   }
 
   Future<Budget?> getCurrentBudget() async {
@@ -50,6 +53,22 @@ class StorageService {
       'user_id': _userId,
       ...expense.toJson(),
     });
+  }
+
+  Future<void> deleteMonthExpenses({int? month, int? year}) async {
+    final now = DateTime.now();
+    final targetYear = year ?? now.year;
+    final targetMonth = month ?? now.month;
+
+    final from = DateTime(targetYear, targetMonth, 1).toIso8601String();
+    final to = DateTime(targetYear, targetMonth + 1, 1).toIso8601String();
+
+    await _client
+        .from('expenses')
+        .delete()
+        .eq('user_id', _userId)
+        .gte('created_at', from)
+        .lt('created_at', to);
   }
 
   Future<List<Expense>> getExpenses({int? month, int? year}) async {

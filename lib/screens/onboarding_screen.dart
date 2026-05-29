@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../models/budget.dart';
 import '../services/storage_service.dart';
+import '../widgets/app_toast.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,8 +14,7 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
-    with SingleTickerProviderStateMixin {
+class _OnboardingScreenState extends State<OnboardingScreen> {
   final _incomeController = TextEditingController();
   final _savingsController = TextEditingController();
   final _periodController = TextEditingController();
@@ -25,95 +25,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   final _formatter = NumberFormat('#,###');
 
-  // 토스트
-  late final AnimationController _toastAnimController;
-  late final Animation<Offset> _toastSlide;
-  late final Animation<double> _toastOpacity;
-  OverlayEntry? _toastEntry;
-
-  @override
-  void initState() {
-    super.initState();
-    _toastAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _toastSlide = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _toastAnimController,
-      curve: Curves.easeOut,
-      reverseCurve: Curves.easeIn,
-    ));
-    _toastOpacity = CurvedAnimation(
-      parent: _toastAnimController,
-      curve: Curves.easeOut,
-    );
-  }
-
   @override
   void dispose() {
-    _toastEntry?.remove();
-    _toastAnimController.dispose();
     _incomeController.dispose();
     _savingsController.dispose();
     _periodController.dispose();
     super.dispose();
   }
 
-  Future<void> _showToast(String message) async {
-    _toastEntry?.remove();
-
-    _toastEntry = OverlayEntry(
-      builder: (_) => Positioned(
-        left: 24,
-        right: 24,
-        bottom: 40,
-        child: Material(
-          color: Colors.transparent,
-          child: SlideTransition(
-            position: _toastSlide,
-            child: FadeTransition(
-              opacity: _toastOpacity,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    color: Color(0xFF534AB7),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(_toastEntry!);
-    await _toastAnimController.forward(from: 0);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      await _toastAnimController.reverse();
-      _toastEntry?.remove();
-      _toastEntry = null;
-    }
-  }
+  void _showToast(String message) => AppToast.show(context, message);
 
   void _onNumberChanged(TextEditingController controller, String value) {
     final digits = value.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
@@ -164,7 +84,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() => _isLoading = true);
 
     try {
-      final available = income - savings;
+      final available = income - (savings ~/ months);
       final budget = Budget(
         income: income,
         savingsGoal: savings,
@@ -174,7 +94,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       );
 
       await StorageService().saveBudget(budget);
-      if (mounted) context.go('/home');
+      if (mounted) {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -187,6 +113,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: context.canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.black),
+                onPressed: () => context.pop(),
+              )
+            : null,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
