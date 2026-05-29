@@ -137,8 +137,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const CircleAvatar(
                   radius: 28,
-                  backgroundColor: Color(0xFFEEEDFE),
-                  child: Icon(Icons.person_rounded, color: Color(0xFF534AB7), size: 28),
+                  backgroundColor: Color(0xFFE1F5EE),
+                  child: Icon(Icons.person_rounded, color: Color(0xFF1D9E75), size: 28),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -216,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         decoration: BoxDecoration(
           color: isDestructive
               ? const Color(0xFFFCEBEB)
-              : const Color(0xFFEEEDFE),
+              : const Color(0xFFE1F5EE),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, size: 18, color: color),
@@ -241,7 +241,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: const Color(0xFFEEEDFE),
+          color: const Color(0xFFE1F5EE),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, size: 18, color: Colors.black87),
@@ -250,8 +250,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: const Color(0xFF534AB7),
-        activeTrackColor: const Color(0xFFEEEDFE),
+        activeThumbColor: const Color(0xFF1D9E75),
+        activeTrackColor: const Color(0xFFE1F5EE),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );

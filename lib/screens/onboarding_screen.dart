@@ -178,7 +178,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Checkbox(
                         value: _autoRollover,
                         onChanged: (v) => setState(() => _autoRollover = v ?? true),
-                        activeColor: const Color(0xFF534AB7),
+                        activeColor: const Color(0xFF1D9E75),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       ),
                     ),
@@ -198,7 +198,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF534AB7).withValues(alpha: 0.3),
+                      color: const Color(0xFF1D9E75).withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),
@@ -210,9 +210,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _onSubmit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF534AB7),
+                      backgroundColor: const Color(0xFF1D9E75),
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFF534AB7),
+                      disabledBackgroundColor: const Color(0xFF1D9E75),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -297,7 +297,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: Color(0xFF999999), fontSize: 14),
-      floatingLabelStyle: const TextStyle(color: Color(0xFF534AB7), fontSize: 14),
+      floatingLabelStyle: const TextStyle(color: Color(0xFF1D9E75), fontSize: 14),
       filled: true,
       fillColor: Colors.white,
       enabledBorder: OutlineInputBorder(
@@ -306,7 +306,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF534AB7), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF1D9E75), width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
     );
@@ -327,14 +327,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEEEDFE) : const Color(0xFFF5F5F5),
+          color: selected ? const Color(0xFFE1F5EE) : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
-            color: selected ? const Color(0xFF534AB7) : Colors.grey,
+            color: selected ? const Color(0xFF1D9E75) : Colors.grey,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

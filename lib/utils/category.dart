@@ -5,7 +5,7 @@ const categoryMeta = <String, (String, Color)>{
   '술': ('🍺', Color(0xFFE24B4A)),
   '교통': ('🚌', Color(0xFF1D9E75)),
   '카페': ('☕', Color(0xFFEF9F27)),
-  '쇼핑': ('🛍', Color(0xFF534AB7)),
+  '쇼핑': ('🛍', Color(0xFF1D9E75)),
   '기타': ('📦', Color(0xFF9E9E9E)),
 };
 

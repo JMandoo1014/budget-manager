@@ -89,7 +89,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 child: ElevatedButton(
                   onPressed: () => context.go('/'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF534AB7),
+                    backgroundColor: const Color(0xFF1D9E75),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
@@ -231,12 +231,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEDFE),
+        color: const Color(0xFFE1F5EE),
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Text(
         '💡 이번 달 지출 패턴을 분석 중이에요. AI 연동 후 맞춤 피드백을 드릴게요!',
-        style: TextStyle(fontSize: 13, color: Color(0xFF534AB7), height: 1.5),
+        style: TextStyle(fontSize: 13, color: Color(0xFF1D9E75), height: 1.5),
       ),
     );
   }

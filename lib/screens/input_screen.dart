@@ -166,7 +166,7 @@ class _InputScreenState extends State<InputScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFFEEEDFE)
+                            ? const Color(0xFFE1F5EE)
                             : const Color(0xFFF5F5F5),
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -174,7 +174,7 @@ class _InputScreenState extends State<InputScreen> {
                         '${cat.$1} ${cat.$2}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: isSelected ? const Color(0xFF534AB7) : Colors.grey,
+                          color: isSelected ? const Color(0xFF1D9E75) : Colors.grey,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
@@ -249,7 +249,7 @@ class _InputScreenState extends State<InputScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF534AB7)),
+          borderSide: const BorderSide(color: Color(0xFF1D9E75)),
         ),
       ),
     );
@@ -271,7 +271,7 @@ class _InputScreenState extends State<InputScreen> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Color(0xFF534AB7),
+                    color: Color(0xFF1D9E75),
                   ),
                 ),
               ),
@@ -285,14 +285,14 @@ class _InputScreenState extends State<InputScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEEDFE),
+                        color: const Color(0xFFE1F5EE),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         '$_categoryEmoji $_category',
                         style: const TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF534AB7),
+                          color: Color(0xFF1D9E75),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -322,7 +322,7 @@ class _InputScreenState extends State<InputScreen> {
                     ),
                     child: const Text(
                       '카테고리 수정',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF534AB7)),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF1D9E75)),
                     ),
                   ),
                 ),
@@ -335,7 +335,7 @@ class _InputScreenState extends State<InputScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEDFE),
+        color: const Color(0xFFE1F5EE),
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Row(
@@ -343,7 +343,7 @@ class _InputScreenState extends State<InputScreen> {
           Expanded(
             child: Text(
               '⚠ 이 카테고리 예산을 많이 썼어요. 지출을 확인해보세요.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF534AB7)),
+              style: TextStyle(fontSize: 12, color: Color(0xFF1D9E75)),
             ),
           ),
         ],
@@ -363,9 +363,9 @@ class _InputScreenState extends State<InputScreen> {
           child: ElevatedButton(
             onPressed: canSave ? _onSave : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF534AB7),
+              backgroundColor: const Color(0xFF1D9E75),
               foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF534AB7),
+              disabledBackgroundColor: const Color(0xFF1D9E75),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
