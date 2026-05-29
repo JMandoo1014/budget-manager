@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -40,13 +39,10 @@ class AiService {
         final text = (data['content'] as List).first['text'] as String;
         return jsonDecode(text) as Map<String, dynamic>;
       } else if (response.statusCode >= 400 && response.statusCode < 500) {
-        debugPrint('classifyExpense 클라이언트 오류 (${response.statusCode}): ${response.body}');
         return _fallbackClassify(rawInput);
-      } else {
-        debugPrint('classifyExpense 서버 오류 (${response.statusCode}): ${response.body}');
       }
     } catch (e) {
-      debugPrint('classifyExpense 예외: $e');
+      // 네트워크 오류, 타임아웃 → fallback
     }
 
     return _fallbackClassify(rawInput);
@@ -122,11 +118,9 @@ class AiService {
         final text = (data['content'] as List).first['text'] as String;
         final parsed = jsonDecode(text) as Map<String, dynamic>;
         return parsed.map((key, value) => MapEntry(key, (value as num).toInt()));
-      } else {
-        debugPrint('generateBudget 오류: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      debugPrint('generateBudget 예외: $e');
+      // 네트워크 오류, 타임아웃 → fallback
     }
 
     // 파싱 실패 시 균등 분배 fallback

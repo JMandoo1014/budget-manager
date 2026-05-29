@@ -124,7 +124,6 @@ class _InputScreenState extends State<InputScreen> {
           .where((e) => e.category == category)
           .fold(0, (sum, e) => sum + e.amount);
 
-      print('카테고리: $category, 지출합계: $totalSpent, 한도: $limit');
       if (totalSpent > limit) {
         await NotificationService().showOverBudgetNotification(category, totalSpent - limit);
       }
@@ -193,7 +192,7 @@ class _InputScreenState extends State<InputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F8FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
