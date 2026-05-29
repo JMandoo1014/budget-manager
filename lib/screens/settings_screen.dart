@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/budget.dart';
+import '../services/purchase_service.dart';
 import '../services/storage_service.dart';
 import '../utils/format.dart';
 import '../widgets/app_toast.dart';
@@ -16,11 +17,15 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   Budget? _budget;
   bool _isLoading = true;
+  bool _isPro = false;
+  bool _isLoadingPro = true;
+  bool _isPurchasing = false;
 
   @override
   void initState() {
     super.initState();
     _loadBudget();
+    _loadProStatus();
   }
 
   Future<void> _loadBudget() async {
@@ -30,6 +35,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _budget = budget;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadProStatus() async {
+    final isPro = await PurchaseService().isPro();
+    if (mounted) {
+      setState(() {
+        _isPro = isPro;
+        _isLoadingPro = false;
+      });
+    }
+  }
+
+  Future<void> _onPurchasePro() async {
+    setState(() => _isPurchasing = true);
+    final success = await PurchaseService().purchasePro();
+    if (mounted) {
+      setState(() {
+        _isPro = success;
+        _isPurchasing = false;
+      });
+      if (success) {
+        AppToast.show(context, 'Pro 구독이 완료됐어요! 🎉');
+      } else {
+        AppToast.show(context, '구매에 실패했어요. 다시 시도해주세요.');
+      }
+    }
+  }
+
+  Future<void> _onRestorePurchases() async {
+    try {
+      await PurchaseService().restorePurchases();
+      final isPro = await PurchaseService().isPro();
+      if (mounted) {
+        setState(() => _isPro = isPro);
+        AppToast.show(context, isPro ? '구매가 복원됐어요! ✅' : '복원할 구매 내역이 없어요.');
+      }
+    } catch (e) {
+      if (mounted) AppToast.show(context, '복원에 실패했어요.');
     }
   }
 
@@ -106,6 +150,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildProfileCard(),
             const SizedBox(height: 16),
             const Text(
+              '구독',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            _buildProSection(),
+            const SizedBox(height: 16),
+            const Text(
               '관리',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
@@ -163,6 +214,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ],
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildProSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: _isLoadingPro
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : Column(
+              children: [
+                if (_isPro)
+                  const ListTile(
+                    leading: Icon(Icons.verified_rounded, color: Color(0xFF1D9E75), size: 28),
+                    title: Text(
+                      '✅ Pro 구독 중',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      '모든 프리미엄 기능을 사용 중이에요',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  )
+                else
+                  ListTile(
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE1F5EE),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.workspace_premium_rounded, size: 18, color: Color(0xFF1D9E75)),
+                    ),
+                    title: const Text('Pro로 업그레이드', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('프리미엄 기능 전체 이용', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    trailing: _isPurchasing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D9E75)),
+                          )
+                        : const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+                    onTap: _isPurchasing ? null : _onPurchasePro,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  ),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE1F5EE),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.restore_rounded, size: 18, color: Color(0xFF1D9E75)),
+                  ),
+                  title: const Text('구매 복원', style: TextStyle(fontSize: 14, color: Colors.black87)),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+                  onTap: _onRestorePurchases,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 ),
               ],
             ),

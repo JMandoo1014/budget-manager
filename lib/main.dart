@@ -8,6 +8,7 @@ import 'screens/input_screen.dart';
 import 'screens/analysis_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/notification_service.dart';
+import 'services/purchase_service.dart';
 import 'services/storage_service.dart';
 
 final _router = GoRouter(
@@ -66,6 +67,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService().init();
   await NotificationService().init();
+  await PurchaseService().init();
   runApp(const BudgetManagerApp());
 }
 
