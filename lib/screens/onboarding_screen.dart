@@ -22,6 +22,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _patterns = ["술자리 잦음", "배달 자주", "카페 매일", "쇼핑 많음"];
   final _selectedPatterns = <String>{};
   bool _isLoading = false;
+  bool _autoRollover = true;
 
   final _formatter = NumberFormat('#,###');
 
@@ -91,6 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         savingsMonths: months,
         spendingPatterns: _selectedPatterns.toList(),
         categoryBudgets: _allocateBudget(available),
+        autoRollover: _autoRollover,
       );
 
       await StorageService().saveBudget(budget);
@@ -165,7 +167,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 runSpacing: 8,
                 children: _patterns.map(_buildChip).toList(),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () => setState(() => _autoRollover = !_autoRollover),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _autoRollover,
+                        onChanged: (v) => setState(() => _autoRollover = v ?? true),
+                        activeColor: const Color(0xFF534AB7),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        '다음 달에도 같은 예산으로 자동 이월할게요',
+                        style: TextStyle(fontSize: 13, color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),

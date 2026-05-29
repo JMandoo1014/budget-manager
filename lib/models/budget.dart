@@ -4,6 +4,7 @@ class Budget {
   final int savingsMonths;
   final List<String> spendingPatterns;
   final Map<String, int> categoryBudgets;
+  final bool autoRollover;
 
   const Budget({
     required this.income,
@@ -11,6 +12,7 @@ class Budget {
     required this.savingsMonths,
     required this.spendingPatterns,
     required this.categoryBudgets,
+    this.autoRollover = true,
   });
 
   int get monthlyBudget => income - (savingsGoal ~/ savingsMonths);
@@ -22,6 +24,7 @@ class Budget {
     int? savingsMonths,
     List<String>? spendingPatterns,
     Map<String, int>? categoryBudgets,
+    bool? autoRollover,
   }) {
     return Budget(
       income: income ?? this.income,
@@ -29,6 +32,7 @@ class Budget {
       savingsMonths: savingsMonths ?? this.savingsMonths,
       spendingPatterns: spendingPatterns ?? this.spendingPatterns,
       categoryBudgets: categoryBudgets ?? this.categoryBudgets,
+      autoRollover: autoRollover ?? this.autoRollover,
     );
   }
 
@@ -39,6 +43,7 @@ class Budget {
       'savingsMonths': savingsMonths,
       'spendingPatterns': spendingPatterns,
       'categoryBudgets': categoryBudgets,
+      'autoRollover': autoRollover,
     };
   }
 
@@ -49,6 +54,7 @@ class Budget {
       savingsMonths: json['savings_months'] as int,
       spendingPatterns: List<String>.from(json['spending_patterns'] as List),
       categoryBudgets: Map<String, int>.from(json['category_budgets'] as Map),
+      autoRollover: json['auto_rollover'] as bool? ?? true,
     );
   }
 }
