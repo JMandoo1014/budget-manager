@@ -21,10 +21,10 @@ class _ShellScreenState extends State<ShellScreen> {
   int _homeRefreshKey = 0;
 
   static const _tabs = [
-    _TabItem(label: '홈', selected: Icons.home_rounded, unselected: Icons.home_outlined),
-    _TabItem(label: '입력', selected: Icons.add_circle_rounded, unselected: Icons.add_circle_outline_rounded),
-    _TabItem(label: '분석', selected: Icons.bar_chart_rounded, unselected: Icons.bar_chart_outlined),
-    _TabItem(label: '설정', selected: Icons.settings_rounded, unselected: Icons.settings_outlined),
+    _TabItem(selected: Icons.home_rounded, unselected: Icons.home_outlined),
+    _TabItem(selected: Icons.add_circle_rounded, unselected: Icons.add_circle_outline_rounded),
+    _TabItem(selected: Icons.bar_chart_rounded, unselected: Icons.bar_chart_outlined),
+    _TabItem(selected: Icons.settings_rounded, unselected: Icons.settings_outlined),
   ];
 
   void _onPageChanged() {
@@ -155,12 +155,10 @@ class _ShellScreenState extends State<ShellScreen> {
 }
 
 class _TabItem {
-  final String label;
   final IconData selected;
   final IconData unselected;
 
   const _TabItem({
-    required this.label,
     required this.selected,
     required this.unselected,
   });

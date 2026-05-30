@@ -17,7 +17,6 @@ void main() async {
   await NotificationService().init();
   await PurchaseService().init();
   final budget = await StorageService().getCurrentBudget();
-  print('초기 예산: $budget');
   final initialLocation = budget != null ? '/home' : '/';
   runApp(BudgetManagerApp(initialLocation: initialLocation));
 }

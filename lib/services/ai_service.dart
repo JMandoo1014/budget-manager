@@ -3,6 +3,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class AiService {
+  static final AiService _instance = AiService._internal();
+  factory AiService() => _instance;
+  AiService._internal();
+
   static String get _apiKey => dotenv.env['CLAUDE_API_KEY'] ?? '';
   static const _endpoint = 'https://api.anthropic.com/v1/messages';
   static const _model = 'claude-sonnet-4-20250514';

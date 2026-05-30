@@ -36,7 +36,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _loadPreviousPrefs() async {
     final prefs = await StorageService().loadPreviousBudgetPrefs();
-    print('이전 설정: $prefs');
     if (prefs == null || !mounted) return;
     setState(() {
       final goal = prefs['savings_goal'] as int;

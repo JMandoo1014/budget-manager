@@ -39,7 +39,6 @@ class StorageService {
       onConflict: 'user_id,month,year',
     );
     await _savePreviousBudgetPrefs(budget);
-    print('이전 설정 저장 완료');
   }
 
   Future<Budget?> getCurrentBudget() async {
@@ -84,8 +83,6 @@ class StorageService {
     await prefs.setInt('savings_months', budget.savingsMonths);
     await prefs.setStringList('spending_patterns', budget.spendingPatterns);
     await prefs.setBool('auto_rollover', budget.autoRollover);
-    print('저장된 savings_goal: ${budget.savingsGoal}');
-    print('저장된 savings_months: ${budget.savingsMonths}');
   }
 
   Future<Map<String, dynamic>?> loadPreviousBudgetPrefs() async {
