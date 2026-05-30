@@ -15,8 +15,7 @@ class Budget {
     this.autoRollover = true,
   });
 
-  int get monthlyBudget => income - (savingsGoal ~/ savingsMonths);
-  int get totalBudget => monthlyBudget;
+  int get totalBudget => income - (savingsGoal ~/ savingsMonths);
 
   Budget copyWith({
     int? income,

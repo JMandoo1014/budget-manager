@@ -77,7 +77,7 @@ class _InputScreenState extends State<InputScreen> {
 
   Future<void> _onSave() async {
     if (_amount == 0) {
-      _showToast('금액을 확인해주세요.');
+      AppToast.show(context, '금액을 확인해주세요.');
       return;
     }
 
@@ -130,8 +130,6 @@ class _InputScreenState extends State<InputScreen> {
       }
     } catch (_) {}
   }
-
-  void _showToast(String message) => AppToast.show(context, message);
 
   void _showCategorySheet() {
     showModalBottomSheet(
