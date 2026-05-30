@@ -1,4 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/budget.dart';
@@ -37,6 +38,8 @@ class StorageService {
       },
       onConflict: 'user_id,month,year',
     );
+    await _savePreviousBudgetPrefs(budget);
+    print('이전 설정 저장 완료');
   }
 
   Future<Budget?> getCurrentBudget() async {
@@ -66,10 +69,35 @@ class StorageService {
     if (prevData.isEmpty) return null;
 
     final prevBudget = Budget.fromJson(prevData.first);
-    if (!prevBudget.autoRollover) return null;
+    if (!prevBudget.autoRollover) {
+      await _savePreviousBudgetPrefs(prevBudget);
+      return null;
+    }
 
     await saveBudget(prevBudget, date: now);
     return prevBudget;
+  }
+
+  Future<void> _savePreviousBudgetPrefs(Budget budget) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('savings_goal', budget.savingsGoal);
+    await prefs.setInt('savings_months', budget.savingsMonths);
+    await prefs.setStringList('spending_patterns', budget.spendingPatterns);
+    await prefs.setBool('auto_rollover', budget.autoRollover);
+    print('저장된 savings_goal: ${budget.savingsGoal}');
+    print('저장된 savings_months: ${budget.savingsMonths}');
+  }
+
+  Future<Map<String, dynamic>?> loadPreviousBudgetPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savingsGoal = prefs.getInt('savings_goal');
+    if (savingsGoal == null) return null;
+    return {
+      'savings_goal': savingsGoal,
+      'savings_months': prefs.getInt('savings_months') ?? 12,
+      'spending_patterns': prefs.getStringList('spending_patterns') ?? [],
+      'auto_rollover': prefs.getBool('auto_rollover') ?? true,
+    };
   }
 
   Future<void> updateAutoRollover(bool value) async {
