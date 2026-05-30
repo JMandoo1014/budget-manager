@@ -38,6 +38,8 @@ class StorageService {
       },
       onConflict: 'user_id,month,year',
     );
+    await _savePreviousBudgetPrefs(budget);
+    print('이전 설정 저장 완료');
   }
 
   Future<Budget?> getCurrentBudget() async {
@@ -78,21 +80,23 @@ class StorageService {
 
   Future<void> _savePreviousBudgetPrefs(Budget budget) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('prev_savings_goal', budget.savingsGoal);
-    await prefs.setInt('prev_savings_months', budget.savingsMonths);
-    await prefs.setStringList('prev_spending_patterns', budget.spendingPatterns);
-    await prefs.setBool('prev_auto_rollover', budget.autoRollover);
+    await prefs.setInt('savings_goal', budget.savingsGoal);
+    await prefs.setInt('savings_months', budget.savingsMonths);
+    await prefs.setStringList('spending_patterns', budget.spendingPatterns);
+    await prefs.setBool('auto_rollover', budget.autoRollover);
+    print('저장된 savings_goal: ${budget.savingsGoal}');
+    print('저장된 savings_months: ${budget.savingsMonths}');
   }
 
   Future<Map<String, dynamic>?> loadPreviousBudgetPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final savingsGoal = prefs.getInt('prev_savings_goal');
+    final savingsGoal = prefs.getInt('savings_goal');
     if (savingsGoal == null) return null;
     return {
-      'savingsGoal': savingsGoal,
-      'savingsMonths': prefs.getInt('prev_savings_months') ?? 12,
-      'spendingPatterns': prefs.getStringList('prev_spending_patterns') ?? [],
-      'autoRollover': prefs.getBool('prev_auto_rollover') ?? true,
+      'savings_goal': savingsGoal,
+      'savings_months': prefs.getInt('savings_months') ?? 12,
+      'spending_patterns': prefs.getStringList('spending_patterns') ?? [],
+      'auto_rollover': prefs.getBool('auto_rollover') ?? true,
     };
   }
 

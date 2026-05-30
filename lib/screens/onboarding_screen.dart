@@ -36,15 +36,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _loadPreviousPrefs() async {
     final prefs = await StorageService().loadPreviousBudgetPrefs();
+    print('이전 설정: $prefs');
     if (prefs == null || !mounted) return;
     setState(() {
-      final goal = prefs['savingsGoal'] as int;
-      final months = prefs['savingsMonths'] as int;
-      final patterns = List<String>.from(prefs['spendingPatterns'] as List);
+      final goal = prefs['savings_goal'] as int;
+      final months = prefs['savings_months'] as int;
+      final patterns = List<String>.from(prefs['spending_patterns'] as List);
       _savingsController.text = _formatter.format(goal);
       _periodController.text = months.toString();
       _selectedPatterns.addAll(patterns);
-      _autoRollover = prefs['autoRollover'] as bool;
+      _autoRollover = prefs['auto_rollover'] as bool;
     });
   }
 
