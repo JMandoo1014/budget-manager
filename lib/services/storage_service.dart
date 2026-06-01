@@ -112,6 +112,13 @@ class StorageService {
     await _client.from('expenses').delete().eq('id', id);
   }
 
+  Future<void> updateExpense(Expense expense) async {
+    await _client.from('expenses').update({
+      'amount': expense.amount,
+      'category': expense.category,
+    }).eq('id', expense.id);
+  }
+
   Future<void> saveExpense(Expense expense) async {
     await _client.from('expenses').insert({
       'user_id': _userId,
@@ -133,6 +140,17 @@ class StorageService {
         .eq('user_id', _userId)
         .gte('created_at', from)
         .lt('created_at', to);
+  }
+
+  Future<void> deleteIncome(String id) async {
+    await _client.from('incomes').delete().eq('id', id);
+  }
+
+  Future<void> updateIncome(Income income) async {
+    await _client.from('incomes').update({
+      'amount': income.amount,
+      'category': income.category,
+    }).eq('id', income.id);
   }
 
   Future<void> saveIncome(Income income) async {
