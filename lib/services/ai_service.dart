@@ -17,9 +17,6 @@ class AiService {
       data['candidates'][0]['content']['parts'][0]['text'] as String;
 
   Future<Map<String, dynamic>> classifyExpense(String rawInput) async {
-    // ignore: avoid_print
-    print('AI 호출 시작: $rawInput');
-
     final prompt =
         '지출 내역을 분석해서 JSON만 반환해. 마크다운이나 다른 텍스트 절대 금지.\n'
         '카테고리: 식비/술/교통/카페/쇼핑/기타\n'
@@ -44,16 +41,9 @@ class AiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      // ignore: avoid_print
-      print('응답 코드: ${response.statusCode}');
-      // ignore: avoid_print
-      print('응답 바디: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final text = _extractText(data).trim();
-        // ignore: avoid_print
-        print('Gemini 응답: $text');
         return jsonDecode(text) as Map<String, dynamic>;
       }
     } catch (_) {}
