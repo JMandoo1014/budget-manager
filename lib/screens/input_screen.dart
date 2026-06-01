@@ -35,23 +35,22 @@ class _InputScreenState extends State<InputScreen> {
 
   // 수입 상태
   final _incomeController = TextEditingController();
+  Timer? _incomeDebounceTimer;
+  int _incomeClassifyGeneration = 0;
   String _incomeInput = '';
   String _incomeCategory = '기타수입';
   int _incomeAmount = 0;
   String _incomeName = '';
+  bool _isClassifyingIncome = false;
   bool _isSavingIncome = false;
 
   static const _warningCategories = {'술', '카페'};
   static const _incomeCategories = ['알바', '용돈', '기타수입'];
-  static const _incomeCategoryEmojis = {'알바': '💼', '용돈': '💰', '기타수입': '💵'};
-  static const _incomeKeywords = <String, List<String>>{
-    '알바': ['알바', '아르바이트', '파트타임', '시급', '주급'],
-    '용돈': ['용돈', '부모님', '엄마', '아빠', '가족'],
-  };
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _incomeDebounceTimer?.cancel();
     _expenseController.dispose();
     _incomeController.dispose();
     super.dispose();
@@ -202,28 +201,35 @@ class _InputScreenState extends State<InputScreen> {
 
   // ── 수입 ──────────────────────────────────────────────
   bool get _hasIncomeInput => _incomeInput.trim().isNotEmpty;
-  String get _incomeCategoryEmoji => _incomeCategoryEmojis[_incomeCategory] ?? '💵';
+  String get _incomeCategoryEmoji => cat.incomeEmoji(_incomeCategory);
   String get _formattedIncomeAmount => _incomeAmount == 0 ? '0원' : '${formatNumber(_incomeAmount)}원';
 
   void _onIncomeInputChanged(String value) {
-    final lower = value.toLowerCase();
-    String category = '기타수입';
-    for (final entry in _incomeKeywords.entries) {
-      if (entry.value.any((kw) => lower.contains(kw))) {
-        category = entry.key;
-        break;
-      }
+    setState(() => _incomeInput = value);
+    _incomeDebounceTimer?.cancel();
+
+    if (value.trim().isEmpty) {
+      setState(() {
+        _incomeCategory = '기타수입';
+        _incomeAmount = 0;
+        _incomeName = '';
+        _isClassifyingIncome = false;
+      });
+      return;
     }
 
-    final digits = RegExp(r'\d+').allMatches(value.replaceAll(',', ''));
-    final amount = digits.isEmpty ? 0 : (int.tryParse(digits.last.group(0)!) ?? 0);
-    final name = value.replaceAll(RegExp(r'[\d,]+'), '').trim();
-
-    setState(() {
-      _incomeInput = value;
-      _incomeCategory = category;
-      _incomeAmount = amount;
-      _incomeName = name.isNotEmpty ? name : value.trim();
+    final generation = ++_incomeClassifyGeneration;
+    setState(() => _isClassifyingIncome = true);
+    _incomeDebounceTimer = Timer(const Duration(milliseconds: 800), () async {
+      final result = await AiService().classifyIncome(value.trim());
+      if (mounted && generation == _incomeClassifyGeneration) {
+        setState(() {
+          _incomeCategory = result['category'] as String? ?? '기타수입';
+          _incomeAmount = (result['amount'] as num?)?.toInt() ?? 0;
+          _incomeName = result['name'] as String? ?? value.trim();
+          _isClassifyingIncome = false;
+        });
+      }
     });
   }
 
@@ -250,6 +256,7 @@ class _InputScreenState extends State<InputScreen> {
           _incomeCategory = '기타수입';
           _incomeAmount = 0;
           _incomeName = '';
+          _isClassifyingIncome = false;
           _isSavingIncome = false;
         });
         AppToast.show(context, '수입이 기록됐어요! 💵');
@@ -283,7 +290,7 @@ class _InputScreenState extends State<InputScreen> {
                 runSpacing: 10,
                 children: _incomeCategories.map((c) {
                   final isSelected = _incomeCategory == c;
-                  final emoji = _incomeCategoryEmojis[c] ?? '💵';
+                  final emoji = cat.incomeEmoji(c);
                   return GestureDetector(
                     onTap: () {
                       setState(() => _incomeCategory = c);
@@ -494,12 +501,23 @@ class _InputScreenState extends State<InputScreen> {
         color: const Color(0xFFF8F8FA),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: _buildResultRows(
-        emoji: _incomeCategoryEmoji,
-        category: _incomeCategory,
-        formattedAmount: _formattedIncomeAmount,
-        onEditCategory: _showIncomeCategorySheet,
-      ),
+      child: _isClassifyingIncome
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D9E75)),
+                ),
+              ),
+            )
+          : _buildResultRows(
+              emoji: _incomeCategoryEmoji,
+              category: _incomeCategory,
+              formattedAmount: _formattedIncomeAmount,
+              onEditCategory: _showIncomeCategorySheet,
+            ),
     );
   }
 
@@ -586,7 +604,7 @@ class _InputScreenState extends State<InputScreen> {
       onPressed = canSave ? _onSave : null;
       isLoading = _isSaving;
     } else {
-      canSave = _hasIncomeInput && !_isSavingIncome && _incomeAmount > 0;
+      canSave = _hasIncomeInput && !_isSavingIncome && !_isClassifyingIncome && _incomeAmount > 0;
       onPressed = canSave ? _onSaveIncome : null;
       isLoading = _isSavingIncome;
     }

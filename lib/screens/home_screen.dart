@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
+import '../services/ai_service.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
@@ -26,6 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   DateTime? _overBudgetNotifiedDate;
+  String? _aiWarning;
+  bool _isLoadingWarning = false;
 
   final _dateFormat = DateFormat('MM/dd HH:mm');
 
@@ -67,9 +70,39 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoading = false;
         });
         _checkDailyOverBudget();
+        _checkBudgetWarning();
       }
     } catch (_) {
       if (mounted) setState(() { _isLoading = false; _hasError = true; });
+    }
+  }
+
+  Future<void> _checkBudgetWarning() async {
+    if (_budget == null) return;
+
+    final spentByCategory = <String, int>{};
+    for (final e in _expenses) {
+      spentByCategory[e.category] = (spentByCategory[e.category] ?? 0) + e.amount;
+    }
+    final totalSpent = spentByCategory.values.fold(0, (sum, v) => sum + v);
+    final extraIncome = _incomes.fold(0, (sum, i) => sum + i.amount);
+    final effectiveBudget = _budget!.totalBudget + extraIncome;
+    final usedRatio = effectiveBudget > 0 ? totalSpent / effectiveBudget : 0.0;
+
+    if (usedRatio < 0.8) return;
+
+    setState(() => _isLoadingWarning = true);
+    try {
+      final warning = await AiService().generateBudgetWarning(
+        remainingBudget: effectiveBudget - totalSpent,
+        totalBudget: effectiveBudget,
+        remainingDays: _daysLeftInt,
+        spentByCategory: spentByCategory,
+        budgetByCategory: _budget!.categoryBudgets,
+      );
+      if (mounted) setState(() { _aiWarning = warning; _isLoadingWarning = false; });
+    } catch (_) {
+      if (mounted) setState(() { _aiWarning = null; _isLoadingWarning = false; });
     }
   }
 
@@ -295,6 +328,8 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildMainBudgetCard(totalBudget, totalSpent, remaining, usedRatio, extraIncome),
           _buildDailyBudgetCard(remaining, _daysLeftInt),
+          if (usedRatio >= 0.8 && (_isLoadingWarning || _aiWarning != null))
+            _buildAiWarningCard(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
@@ -311,6 +346,30 @@ class _HomeScreenState extends State<HomeScreen> {
             return _buildCategoryCard(emoji, entry.key, spent, limit, color, categoryExpenses);
           }),
           const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiWarningCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('⚠️', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _isLoadingWarning ? 'AI가 분석 중...' : (_aiWarning ?? ''),
+              style: const TextStyle(fontSize: 13, color: Color(0xFFEF9F27), height: 1.5),
+            ),
+          ),
         ],
       ),
     );

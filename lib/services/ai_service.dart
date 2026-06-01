@@ -150,7 +150,7 @@ class AiService {
     }).join('\n');
 
     final prompt =
-        '이번 달 예산 분석 결과야. 친근한 말투로 2~3문장 피드백 줘. 잘한 점과 아쉬운 점 모두 포함해. JSON이나 마크다운 절대 금지. 평문으로만 답해.\n'
+        '이번 달 예산 분석 결과야. 반드시 존댓말로, 친근하지만 정중한 말투로 2~3문장 피드백 줘. 반말 절대 금지. 잘한 점과 아쉬운 점 모두 포함해. JSON이나 마크다운 절대 금지. 평문으로만 답해.\n'
         '총예산: $totalBudget원\n'
         '총지출: $totalSpent원\n'
         '카테고리별:\n$categoryLines';
@@ -180,5 +180,109 @@ class AiService {
     } catch (_) {}
 
     return '이번 달 지출 패턴을 분석 중이에요.';
+  }
+
+  Future<String> generateBudgetWarning({
+    required int remainingBudget,
+    required int totalBudget,
+    required int remainingDays,
+    required Map<String, int> spentByCategory,
+    required Map<String, int> budgetByCategory,
+  }) async {
+    final prompt =
+        '예산 상황을 보고 한국어로 1-2문장 경고 메시지만 줘.\n'
+        '반드시 존댓말로. 친근하지만 정중한 말투로.\n'
+        '반말 절대 금지.\n'
+        '남은예산: $remainingBudget원\n'
+        '총예산: $totalBudget원\n'
+        '남은일수: $remainingDays일\n'
+        '카테고리별 지출: $spentByCategory\n'
+        '카테고리별 예산: $budgetByCategory\n'
+        'JSON 말고 일반 텍스트로만 반환해.';
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_endpoint),
+            headers: _headers,
+            body: jsonEncode({
+              'contents': [
+                {
+                  'parts': [{'text': prompt}]
+                }
+              ],
+              'generationConfig': {
+                'thinkingConfig': {'thinkingBudget': 0},
+              },
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return _extractText(data).trim();
+      }
+    } catch (_) {}
+
+    return '예산의 80% 이상을 사용했어요. 남은 기간 지출을 줄여보세요!';
+  }
+
+  Future<Map<String, dynamic>> classifyIncome(String rawInput) async {
+    final prompt =
+        '수입 내역을 분석해서 JSON만 반환해. 다른 텍스트 절대 금지.\n'
+        '카테고리: 알바/용돈/기타수입\n'
+        '형식: {"category": "알바", "amount": 200000, "name": "알바비"}\n'
+        '입력: $rawInput';
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_endpoint),
+            headers: _headers,
+            body: jsonEncode({
+              'contents': [
+                {
+                  'parts': [{'text': prompt}]
+                }
+              ],
+              'generationConfig': {
+                'thinkingConfig': {'thinkingBudget': 0},
+              },
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final text = _extractText(data).trim();
+        return jsonDecode(text) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+
+    return _fallbackClassifyIncome(rawInput);
+  }
+
+  static const _incomeKeywordMap = <String, List<String>>{
+    '알바': ['알바', '아르바이트', '파트타임', '시급', '주급'],
+    '용돈': ['용돈', '부모님', '엄마', '아빠', '가족'],
+  };
+
+  Map<String, dynamic> _fallbackClassifyIncome(String rawInput) {
+    final lower = rawInput.toLowerCase();
+    String category = '기타수입';
+    for (final entry in _incomeKeywordMap.entries) {
+      if (entry.value.any((kw) => lower.contains(kw))) {
+        category = entry.key;
+        break;
+      }
+    }
+    final digits = RegExp(r'\d+').allMatches(rawInput.replaceAll(',', ''));
+    final amount = digits.isEmpty ? 0 : (int.tryParse(digits.last.group(0)!) ?? 0);
+    final name = rawInput.replaceAll(RegExp(r'[\d,]+'), '').trim();
+    return {
+      'category': category,
+      'amount': amount,
+      'name': name.isNotEmpty ? name : rawInput,
+    };
   }
 }
