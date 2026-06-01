@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -25,8 +26,11 @@ class PurchaseService {
   Future<bool> purchasePro() async {
     try {
       final offerings = await Purchases.getOfferings();
-      final package = offerings.current?.monthly;
-      if (package == null) return false;
+      if (offerings.current == null || offerings.current!.monthly == null) {
+        debugPrint('상품 없음: RevenueCat 설정 필요');
+        return false;
+      }
+      final package = offerings.current!.monthly!;
       final customerInfo = await Purchases.purchasePackage(package);
       return customerInfo.entitlements.active.containsKey(_proEntitlement);
     } on PurchasesError catch (e) {

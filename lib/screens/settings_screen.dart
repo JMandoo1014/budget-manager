@@ -59,7 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (success) {
         AppToast.show(context, 'Pro 구독이 완료됐어요! 🎉');
       } else {
-        AppToast.show(context, '구매에 실패했어요. 다시 시도해주세요.');
+        AppToast.show(context, '현재 구독 서비스를 준비 중이에요.');
       }
     }
   }
