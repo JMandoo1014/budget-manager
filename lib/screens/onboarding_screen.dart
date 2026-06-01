@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/budget.dart';
+import '../services/ai_service.dart';
 import '../services/storage_service.dart';
 import '../widgets/app_toast.dart';
 
@@ -104,19 +105,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return int.tryParse(text.replaceAll(',', '')) ?? 0;
   }
 
-  Map<String, int> _allocateBudget(int available) {
-    final base = {
-      '식비': (available * 0.30).round(),
-      '술': (available * 0.15).round(),
-      '교통': (available * 0.15).round(),
-      '카페': (available * 0.10).round(),
-      '쇼핑': (available * 0.15).round(),
-    };
-    final allocated = base.values.fold(0, (sum, v) => sum + v);
-    base['기타'] = available - allocated;
-    return base;
-  }
-
   Future<void> _onSubmit() async {
     final income = _parseFormatted(_incomeController.text);
     final savings = _parseFormatted(_savingsController.text);
@@ -138,13 +126,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final available = income - (savings ~/ months);
+      final categoryBudgets = await AiService().generateBudget(
+        income: income,
+        savingsGoal: savings,
+        savingsMonths: months,
+        spendingPatterns: _selectedPatterns.toList(),
+      );
+
       final budget = Budget(
         income: income,
         savingsGoal: savings,
         savingsMonths: months,
         spendingPatterns: _selectedPatterns.toList(),
-        categoryBudgets: _allocateBudget(available),
+        categoryBudgets: categoryBudgets,
         autoRollover: _autoRollover,
       );
 
