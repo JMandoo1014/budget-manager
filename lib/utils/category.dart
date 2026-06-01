@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
-const categoryMeta = <String, (String, Color)>{
-  '식비': ('🍚', Color(0xFF1D9E75)),
-  '술': ('🍺', Color(0xFFE24B4A)),
-  '교통': ('🚌', Color(0xFF1D9E75)),
-  '카페': ('☕', Color(0xFFEF9F27)),
-  '쇼핑': ('🛍', Color(0xFF1D9E75)),
-  '기타': ('📦', Color(0xFF9E9E9E)),
+const _categoryEmojis = <String, String>{
+  '식비': '🍚',
+  '술': '🍺',
+  '교통': '🚌',
+  '카페': '☕',
+  '쇼핑': '🛍',
+  '기타': '📦',
+};
+
+const _incomeEmojis = <String, String>{
+  '알바': '💼',
+  '용돈': '💰',
+  '기타수입': '💵',
 };
 
 const categoryList = <(String, String)>[
@@ -18,7 +24,9 @@ const categoryList = <(String, String)>[
   ('📦', '기타'),
 ];
 
-String categoryEmoji(String category) => categoryMeta[category]?.$1 ?? '📦';
+String categoryEmoji(String category) => _categoryEmojis[category] ?? '📦';
+
+String incomeEmoji(String category) => _incomeEmojis[category] ?? '💵';
 
 Color progressColor(int spent, int limit) {
   if (limit == 0) return const Color(0xFF1D9E75);

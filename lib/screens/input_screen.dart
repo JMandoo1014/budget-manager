@@ -560,7 +560,7 @@ class _InputScreenState extends State<InputScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE1F5EE),
+        color: const Color(0xFFFFF8EC),
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Row(
@@ -568,7 +568,7 @@ class _InputScreenState extends State<InputScreen> {
           Expanded(
             child: Text(
               '⚠ 이 카테고리 예산을 많이 썼어요. 지출을 확인해보세요.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF1D9E75)),
+              style: TextStyle(fontSize: 12, color: Color(0xFFEF9F27)),
             ),
           ),
         ],

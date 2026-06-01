@@ -97,17 +97,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String get _monthLabel => '${DateTime.now().month}월 현황';
 
-  String get _daysLeft {
-    final now = DateTime.now();
-    final lastDay = DateTime(now.year, now.month + 1, 0);
-    return '${lastDay.day - now.day + 1}일 남음';
-  }
-
   int get _daysLeftInt {
     final now = DateTime.now();
-    final lastDay = DateTime(now.year, now.month + 1, 0);
-    return lastDay.day - now.day + 1;
+    return DateTime(now.year, now.month + 1, 0).day - now.day + 1;
   }
+
+  String get _daysLeft => '$_daysLeftInt일 남음';
 
   int get _todaySpent {
     final now = DateTime.now();
@@ -374,6 +369,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildDailyBudgetCard(int remaining, int daysLeft) {
     if (daysLeft <= 0) return const SizedBox.shrink();
+
+    if (remaining <= 0) {
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Color(0xFFE24B4A), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '이번 달 예산을 ${formatNumber(-remaining)}원 초과했어요',
+                style: const TextStyle(fontSize: 13, color: Color(0xFFE24B4A)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     final dailyBudget = remaining ~/ daysLeft;
     final todaySpent = _todaySpent;

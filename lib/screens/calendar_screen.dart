@@ -83,14 +83,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
         .toList();
   }
 
-  String _incomeEmoji(String category) {
-    switch (category) {
-      case '알바': return '💼';
-      case '용돈': return '💰';
-      default: return '💵';
-    }
-  }
-
   String _formatCompact(int amount) {
     if (amount >= 10000) {
       if (amount % 10000 == 0) return '${amount ~/ 10000}만';
@@ -274,21 +266,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('삭제 확인'),
-        content: Text(message),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('삭제', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Text(message, style: const TextStyle(fontSize: 14, color: Colors.grey)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
+            child: const Text('취소', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제', style: TextStyle(color: Color(0xFFE24B4A))),
+            child: const Text('삭제', style: TextStyle(color: Color(0xFFE24B4A), fontWeight: FontWeight.w600)),
           ),
         ],
       ),
     );
-    return result ?? false;
+    return result == true;
   }
 
   Future<void> _deleteExpense(Expense expense) async {
@@ -299,13 +293,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
     try {
       await StorageService().deleteExpense(expense.id);
+      if (mounted) AppToast.show(context, '지출이 삭제됐어요.');
     } catch (_) {
       if (mounted) {
         setState(() {
           _expenses.insert(idx, expense);
           _recalculateTotals();
         });
-        AppToast.show(context, '삭제에 실패했어요.');
+        AppToast.show(context, '삭제에 실패했어요.', isError: true);
       }
     }
   }
@@ -325,13 +320,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
     try {
       await StorageService().updateExpense(updated);
+      if (mounted) AppToast.show(context, '수정됐어요.');
     } catch (_) {
       if (mounted) {
         setState(() {
           _expenses[idx] = expense;
           _recalculateTotals();
         });
-        AppToast.show(context, '수정에 실패했어요.');
+        AppToast.show(context, '수정에 실패했어요.', isError: true);
       }
     }
   }
@@ -580,7 +576,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Row(
                     children: [
-                      Text(_incomeEmoji(i.category), style: const TextStyle(fontSize: 22)),
+                      Text(cat.incomeEmoji(i.category), style: const TextStyle(fontSize: 22)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(

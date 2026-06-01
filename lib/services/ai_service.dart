@@ -87,9 +87,6 @@ class AiService {
     required int savingsMonths,
     required List<String> spendingPatterns,
   }) async {
-    // ignore: avoid_print
-    print('generateBudget AI 호출 시작');
-
     final monthlySavings = savingsGoal ~/ savingsMonths;
     final available = income - monthlySavings;
 
@@ -124,8 +121,6 @@ class AiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final text = _extractText(data).trim();
-        // ignore: avoid_print
-        print('Gemini 예산 응답: $text');
         final parsed = jsonDecode(text) as Map<String, dynamic>;
         return parsed.map((key, value) => MapEntry(key, (value as num).toInt()));
       }

@@ -47,12 +47,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     setState(() { _isLoading = true; _hasError = false; });
     try {
       final now = DateTime.now();
-      final budget = await StorageService().getCurrentBudget();
-      final expenses = await StorageService().getExpenses(month: now.month, year: now.year);
+      final budgetFuture = StorageService().getCurrentBudget();
+      final expensesFuture = StorageService().getExpenses(month: now.month, year: now.year);
+      final incomesFuture = StorageService().getIncomes(month: now.month, year: now.year);
+      final budget = await budgetFuture;
+      final expenses = await expensesFuture;
       List<Income> incomes = [];
-      try {
-        incomes = await StorageService().getIncomes(month: now.month, year: now.year);
-      } catch (_) {}
+      try { incomes = await incomesFuture; } catch (_) {}
       if (mounted) {
         setState(() {
           _budget = budget;
@@ -157,7 +158,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   void _showExpenseEditSheet(Expense expense) {
-    final amountController = TextEditingController(text: expense.amount.toString());
+    final formatter = NumberFormat('#,###');
+    final amountController = TextEditingController(text: formatter.format(expense.amount));
     String selectedCategory = expense.category;
 
     showModalBottomSheet(
@@ -179,7 +181,22 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
+                onChanged: (v) {
+                  final digits = v.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
+                  if (digits.isEmpty) {
+                    amountController.value = const TextEditingValue(text: '');
+                  } else {
+                    final n = int.tryParse(digits);
+                    if (n != null) {
+                      final formatted = formatter.format(n);
+                      amountController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
+                  }
+                },
                 decoration: InputDecoration(
                   labelText: '금액',
                   suffixText: '원',
@@ -230,7 +247,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    final amount = int.tryParse(amountController.text) ?? expense.amount;
+                    final amount = int.tryParse(amountController.text.replaceAll(',', '')) ?? expense.amount;
                     _updateExpense(expense, amount, selectedCategory);
                   },
                   style: ElevatedButton.styleFrom(
@@ -291,7 +308,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   void _showIncomeEditSheet(Income income) {
-    final amountController = TextEditingController(text: income.amount.toString());
+    final formatter = NumberFormat('#,###');
+    final amountController = TextEditingController(text: formatter.format(income.amount));
     String selectedCategory = income.category;
 
     showModalBottomSheet(
@@ -313,7 +331,22 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
+                onChanged: (v) {
+                  final digits = v.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
+                  if (digits.isEmpty) {
+                    amountController.value = const TextEditingValue(text: '');
+                  } else {
+                    final n = int.tryParse(digits);
+                    if (n != null) {
+                      final formatted = formatter.format(n);
+                      amountController.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
+                  }
+                },
                 decoration: InputDecoration(
                   labelText: '금액',
                   suffixText: '원',
@@ -364,7 +397,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    final amount = int.tryParse(amountController.text) ?? income.amount;
+                    final amount = int.tryParse(amountController.text.replaceAll(',', '')) ?? income.amount;
                     _updateIncome(income, amount, selectedCategory);
                   },
                   style: ElevatedButton.styleFrom(
@@ -622,11 +655,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildIncomeCard(Income income) {
-    final emoji = switch (income.category) {
-      '알바' => '💼',
-      '용돈' => '💰',
-      _ => '💵',
-    };
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
@@ -638,7 +666,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$emoji  ${income.rawInput}',
+                  '${cat.incomeEmoji(income.category)}  ${income.rawInput}',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis,
                 ),
