@@ -125,11 +125,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          _buildCalendarCard(),
-          Expanded(child: _buildExpenseCard()),
-        ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildCalendarCard(),
+            _buildExpenseCard(),
+          ],
+        ),
       ),
     );
   }
@@ -452,6 +454,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildExpenseCard() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      constraints: const BoxConstraints(minHeight: 200),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -477,7 +480,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
-          Expanded(child: _buildExpenseList()),
+          _buildExpenseList(),
         ],
       ),
     );
@@ -485,8 +488,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildExpenseList() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF1D9E75), strokeWidth: 2),
+      return const SizedBox(
+        height: 200,
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF1D9E75), strokeWidth: 2),
+        ),
       );
     }
 
@@ -494,8 +500,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final incomes = _selectedIncomes;
 
     if (expenses.isEmpty && incomes.isEmpty) {
-      return const Center(
-        child: Text('이날은 내역이 없어요 🎉', style: TextStyle(fontSize: 14, color: Colors.grey)),
+      return const SizedBox(
+        height: 200,
+        child: Center(
+          child: Text('이날은 내역이 없어요 🎉', style: TextStyle(fontSize: 14, color: Colors.grey)),
+        ),
       );
     }
 
@@ -503,7 +512,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final totalIncome = incomes.fold(0, (sum, i) => sum + i.amount);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       children: [
         if (expenses.isNotEmpty) ...[
           _buildSectionLabel('지출'),
