@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'home_screen.dart';
 import 'input_screen.dart';
+import 'calendar_screen.dart';
 import 'analysis_screen.dart';
 import 'settings_screen.dart';
 
@@ -23,6 +24,7 @@ class _ShellScreenState extends State<ShellScreen> {
   static const _tabs = [
     _TabItem(selected: Icons.home_rounded, unselected: Icons.home_outlined),
     _TabItem(selected: Icons.add_circle_rounded, unselected: Icons.add_circle_outline_rounded),
+    _TabItem(selected: Icons.calendar_month_rounded, unselected: Icons.calendar_month_outlined),
     _TabItem(selected: Icons.bar_chart_rounded, unselected: Icons.bar_chart_outlined),
     _TabItem(selected: Icons.settings_rounded, unselected: Icons.settings_outlined),
   ];
@@ -80,6 +82,7 @@ class _ShellScreenState extends State<ShellScreen> {
             children: [
               HomeScreen(refreshTrigger: _homeRefreshKey),
               const InputScreen(),
+              const CalendarScreen(),
               const AnalysisScreen(),
               const SettingsScreen(),
             ],

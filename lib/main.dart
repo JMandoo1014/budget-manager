@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/shell_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/input_screen.dart';
+import 'screens/calendar_screen.dart';
 import 'screens/analysis_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/notification_service.dart';
@@ -13,6 +15,7 @@ import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ko_KR', null);
   await StorageService().init();
   await NotificationService().init();
   await PurchaseService().init();
@@ -57,6 +60,15 @@ class _BudgetManagerAppState extends State<BudgetManagerApp> {
                 path: '/input',
                 pageBuilder: (context, state) =>
                     const NoTransitionPage(child: InputScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/calendar',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: CalendarScreen()),
               ),
             ],
           ),
