@@ -176,10 +176,7 @@ class StorageService {
         .lt('created_at', to)
         .order('created_at', ascending: false);
 
-    return data.map((row) {
-      final createdAt = DateTime.parse(row['created_at'] as String).toLocal();
-      return Income.fromJson({...row, 'created_at': createdAt.toIso8601String()});
-    }).toList();
+    return data.map((row) => Income.fromJson(row)).toList();
   }
 
   Future<List<Expense>> getExpenses({int? month, int? year}) async {
@@ -198,9 +195,6 @@ class StorageService {
         .lt('created_at', to)
         .order('created_at', ascending: false);
 
-    return data.map((row) {
-      final createdAt = DateTime.parse(row['created_at'] as String).toLocal();
-      return Expense.fromJson({...row, 'created_at': createdAt.toIso8601String()});
-    }).toList();
+    return data.map((row) => Expense.fromJson(row)).toList();
   }
 }

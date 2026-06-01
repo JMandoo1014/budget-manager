@@ -213,11 +213,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               shape: BoxShape.circle,
             ),
             selectedDecoration: BoxDecoration(
-              color: Color(0xFF0F6E56),
+              color: Color(0xFFE0E0E0),
               shape: BoxShape.circle,
             ),
             todayTextStyle: TextStyle(color: Colors.white, fontSize: 13),
-            selectedTextStyle: TextStyle(color: Colors.white, fontSize: 13),
+            selectedTextStyle: TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold),
             weekendTextStyle: TextStyle(color: Colors.black87, fontSize: 13),
             defaultTextStyle: TextStyle(color: Colors.black87, fontSize: 13),
           ),
@@ -454,6 +454,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildExpenseCard() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.only(bottom: 100),
       constraints: const BoxConstraints(minHeight: 200),
       decoration: BoxDecoration(
         color: Colors.white,
