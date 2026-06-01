@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../models/expense.dart';
+import '../models/income.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
@@ -20,7 +21,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _focusedDay;
   late DateTime _selectedDay;
   List<Expense> _expenses = [];
+  List<Income> _incomes = [];
   Map<DateTime, int> _dailyTotals = {};
+  Map<DateTime, int> _dailyIncomes = {};
   bool _isLoading = true;
 
   @override
@@ -35,20 +38,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _loadMonth(DateTime month) async {
     setState(() => _isLoading = true);
     try {
-      final expenses = await StorageService().getExpenses(
-        month: month.month,
-        year: month.year,
-      );
+      final expensesFuture = StorageService().getExpenses(month: month.month, year: month.year);
+      final incomesFuture = StorageService().getIncomes(month: month.month, year: month.year);
+      final expenses = await expensesFuture;
+      List<Income> incomes = [];
+      try { incomes = await incomesFuture; } catch (_) {}
+
       final totals = <DateTime, int>{};
       for (final e in expenses) {
         final local = e.createdAt.toLocal();
         final key = DateTime(local.year, local.month, local.day);
         totals[key] = (totals[key] ?? 0) + e.amount;
       }
+      final incomeTotals = <DateTime, int>{};
+      for (final i in incomes) {
+        final local = i.createdAt.toLocal();
+        final key = DateTime(local.year, local.month, local.day);
+        incomeTotals[key] = (incomeTotals[key] ?? 0) + i.amount;
+      }
       if (mounted) {
         setState(() {
           _expenses = expenses;
+          _incomes = incomes;
           _dailyTotals = totals;
+          _dailyIncomes = incomeTotals;
           _isLoading = false;
         });
       }
@@ -64,6 +77,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
           local.month == _selectedDay.month &&
           local.day == _selectedDay.day;
     }).toList();
+  }
+
+  List<Income> get _selectedIncomes {
+    return _incomes.where((i) {
+      final local = i.createdAt.toLocal();
+      return local.year == _selectedDay.year &&
+          local.month == _selectedDay.month &&
+          local.day == _selectedDay.day;
+    }).toList();
+  }
+
+  String _incomeEmoji(String category) {
+    switch (category) {
+      case '알바': return '💼';
+      case '용돈': return '💰';
+      default: return '💵';
+    }
   }
 
   String _formatCompact(int amount) {
@@ -146,11 +176,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
           locale: 'ko_KR',
           calendarFormat: CalendarFormat.month,
           availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-          rowHeight: 54,
+          rowHeight: 68,
           eventLoader: (day) {
             final key = DateTime(day.year, day.month, day.day);
-            final total = _dailyTotals[key];
-            return total != null && total > 0 ? [total] : [];
+            final hasExpense = (_dailyTotals[key] ?? 0) > 0;
+            final hasIncome = (_dailyIncomes[key] ?? 0) > 0;
+            return hasExpense || hasIncome ? [1] : [];
           },
           headerStyle: HeaderStyle(
             titleCentered: true,
@@ -196,15 +227,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
           calendarBuilders: CalendarBuilders(
             markerBuilder: (context, day, events) {
               if (events.isEmpty) return null;
-              final total = events.first as int;
+              final key = DateTime(day.year, day.month, day.day);
+              final expense = _dailyTotals[key] ?? 0;
+              final income = _dailyIncomes[key] ?? 0;
               return Positioned(
-                bottom: 2,
-                child: Text(
-                  _formatCompact(total),
-                  style: const TextStyle(
-                    fontSize: 8,
-                    color: Color(0xFFE24B4A),
-                  ),
+                bottom: 3,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (expense > 0)
+                      Text(
+                        '-${_formatCompact(expense)}',
+                        style: const TextStyle(fontSize: 8, color: Color(0xFFE24B4A)),
+                      ),
+                    if (income > 0)
+                      Text(
+                        '+${_formatCompact(income)}',
+                        style: const TextStyle(fontSize: 8, color: Color(0xFF1D9E75)),
+                      ),
+                  ],
                 ),
               );
             },
@@ -222,6 +263,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       totals[key] = (totals[key] ?? 0) + e.amount;
     }
     _dailyTotals = totals;
+    final incomeTotals = <DateTime, int>{};
+    for (final i in _incomes) {
+      final local = i.createdAt.toLocal();
+      final key = DateTime(local.year, local.month, local.day);
+      incomeTotals[key] = (incomeTotals[key] ?? 0) + i.amount;
+    }
+    _dailyIncomes = incomeTotals;
   }
 
   Future<bool> _confirmDelete(String message) async {
@@ -445,84 +493,134 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildExpenseList() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF1D9E75),
-          strokeWidth: 2,
-        ),
+        child: CircularProgressIndicator(color: Color(0xFF1D9E75), strokeWidth: 2),
       );
     }
 
-    final items = _selectedExpenses;
-    if (items.isEmpty) {
+    final expenses = _selectedExpenses;
+    final incomes = _selectedIncomes;
+
+    if (expenses.isEmpty && incomes.isEmpty) {
       return const Center(
-        child: Text(
-          '이날은 지출이 없어요 🎉',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
+        child: Text('이날은 내역이 없어요 🎉', style: TextStyle(fontSize: 14, color: Colors.grey)),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: items.length,
-      separatorBuilder: (context, idx) =>
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
-      itemBuilder: (context, idx) {
-        final e = items[idx];
-        return Dismissible(
-          key: ValueKey(e.id),
-          direction: DismissDirection.endToStart,
-          confirmDismiss: (_) => _confirmDelete('이 지출을 삭제할까요?'),
-          onDismissed: (_) => _deleteExpense(e),
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            color: const Color(0xFFE24B4A),
-            child: const Icon(Icons.delete_outline, color: Colors.white),
-          ),
-          child: GestureDetector(
-            onLongPress: () => _showExpenseEditSheet(e),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                children: [
-                  Text(
-                    cat.categoryEmoji(e.category),
-                    style: const TextStyle(fontSize: 22),
+    final totalSpent = expenses.fold(0, (sum, e) => sum + e.amount);
+    final totalIncome = incomes.fold(0, (sum, i) => sum + i.amount);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      children: [
+        if (expenses.isNotEmpty) ...[
+          _buildSectionLabel('지출'),
+          ...List.generate(expenses.length, (idx) {
+            final e = expenses[idx];
+            return Column(
+              children: [
+                if (idx > 0) const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                Dismissible(
+                  key: ValueKey(e.id),
+                  direction: DismissDirection.endToStart,
+                  confirmDismiss: (_) => _confirmDelete('이 지출을 삭제할까요?'),
+                  onDismissed: (_) => _deleteExpense(e),
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    color: const Color(0xFFE24B4A),
+                    child: const Icon(Icons.delete_outline, color: Colors.white),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          e.rawInput,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                  child: GestureDetector(
+                    onLongPress: () => _showExpenseEditSheet(e),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          Text(cat.categoryEmoji(e.category), style: const TextStyle(fontSize: 22)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(e.rawInput,
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 2),
+                                Text(e.category,
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          e.category,
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
+                          Text('${formatNumber(e.amount)}원',
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
                   ),
-                  Text(
-                    '${formatNumber(e.amount)}원',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+              ],
+            );
+          }),
+        ],
+        if (incomes.isNotEmpty) ...[
+          SizedBox(height: expenses.isEmpty ? 0 : 8),
+          _buildSectionLabel('수입'),
+          ...List.generate(incomes.length, (idx) {
+            final i = incomes[idx];
+            return Column(
+              children: [
+                if (idx > 0) const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Text(_incomeEmoji(i.category), style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(i.rawInput,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 2),
+                            Text(i.category,
+                                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                      Text('+${formatNumber(i.amount)}원',
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1D9E75))),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              ],
+            );
+          }),
+        ],
+        const SizedBox(height: 4),
+        const Divider(height: 1, color: Color(0xFFF0F0F0)),
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('총 지출 ${formatNumber(totalSpent)}원',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFFE24B4A), fontWeight: FontWeight.w500)),
+              const Text(' / ', style: TextStyle(fontSize: 13, color: Colors.grey)),
+              Text('총 수입 ${formatNumber(totalIncome)}원',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF1D9E75), fontWeight: FontWeight.w500)),
+            ],
           ),
-        );
-      },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 6),
+      child: Text(label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
     );
   }
 }
