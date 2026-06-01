@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
+import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Income> _incomes = [];
   bool _isLoading = true;
   bool _hasError = false;
+  DateTime? _overBudgetNotifiedDate;
 
   final _dateFormat = DateFormat('MM/dd HH:mm');
 
@@ -64,9 +66,32 @@ class _HomeScreenState extends State<HomeScreen> {
           _incomes = incomes;
           _isLoading = false;
         });
+        _checkDailyOverBudget();
       }
     } catch (_) {
       if (mounted) setState(() { _isLoading = false; _hasError = true; });
+    }
+  }
+
+  void _checkDailyOverBudget() {
+    if (_budget == null) return;
+    final today = DateTime.now();
+    if (_overBudgetNotifiedDate != null &&
+        _overBudgetNotifiedDate!.year == today.year &&
+        _overBudgetNotifiedDate!.month == today.month &&
+        _overBudgetNotifiedDate!.day == today.day) { return; }
+
+    final extraIncome = _incomes.fold(0, (sum, i) => sum + i.amount);
+    final totalSpent = _expenses.fold(0, (sum, e) => sum + e.amount);
+    final remaining = _budget!.totalBudget + extraIncome - totalSpent;
+    final daysLeft = _daysLeftInt;
+    if (daysLeft <= 0) return;
+
+    final dailyBudget = remaining ~/ daysLeft;
+    final todaySpent = _todaySpent;
+    if (todaySpent > dailyBudget) {
+      _overBudgetNotifiedDate = today;
+      NotificationService().showOverBudgetNotification('오늘 하루', todaySpent - dailyBudget);
     }
   }
 
@@ -76,6 +101,32 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final lastDay = DateTime(now.year, now.month + 1, 0);
     return '${lastDay.day - now.day + 1}일 남음';
+  }
+
+  int get _daysLeftInt {
+    final now = DateTime.now();
+    final lastDay = DateTime(now.year, now.month + 1, 0);
+    return lastDay.day - now.day + 1;
+  }
+
+  int get _todaySpent {
+    final now = DateTime.now();
+    return _expenses
+        .where((e) =>
+            e.createdAt.year == now.year &&
+            e.createdAt.month == now.month &&
+            e.createdAt.day == now.day)
+        .fold(0, (sum, e) => sum + e.amount);
+  }
+
+  int get _yesterdaySpent {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    return _expenses
+        .where((e) =>
+            e.createdAt.year == yesterday.year &&
+            e.createdAt.month == yesterday.month &&
+            e.createdAt.day == yesterday.day)
+        .fold(0, (sum, e) => sum + e.amount);
   }
 
 
@@ -248,6 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildMainBudgetCard(totalBudget, totalSpent, remaining, usedRatio, extraIncome),
+          _buildDailyBudgetCard(remaining, _daysLeftInt),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
@@ -315,6 +367,98 @@ class _HomeScreenState extends State<HomeScreen> {
             '${(usedRatio * 100).toStringAsFixed(0)}% 사용  •  총 예산 ${formatNumber(totalBudget)}원',
             style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyBudgetCard(int remaining, int daysLeft) {
+    if (daysLeft <= 0) return const SizedBox.shrink();
+
+    final dailyBudget = remaining ~/ daysLeft;
+    final todaySpent = _todaySpent;
+    final isOver = todaySpent > dailyBudget;
+    final todayRemaining = dailyBudget - todaySpent;
+    final overAmount = isOver ? todaySpent - dailyBudget : 0;
+    final progress = dailyBudget > 0
+        ? (todaySpent / dailyBudget).clamp(0.0, 1.0)
+        : (todaySpent > 0 ? 1.0 : 0.0);
+    final color = isOver ? const Color(0xFFE24B4A) : const Color(0xFF1D9E75);
+
+    final now = DateTime.now();
+    final isFirstDay = now.day == 1;
+    String? yesterdayText;
+    if (!isFirstDay) {
+      final ys = _yesterdaySpent;
+      final diff = ys - todaySpent;
+      if (diff > 0) {
+        yesterdayText = '어제보다 ${formatNumber(diff)}원 적게 썼어요';
+      } else if (diff < 0) {
+        yesterdayText = '어제보다 ${formatNumber(-diff)}원 더 썼어요';
+      } else {
+        yesterdayText = '어제와 같은 금액을 썼어요';
+      }
+    }
+
+    String? tomorrowText;
+    if (isOver && daysLeft > 1) {
+      final tomorrowBudget = remaining ~/ (daysLeft - 1);
+      tomorrowText =
+          '오늘 ${formatNumber(overAmount)}원 초과했어요. 내일부터 하루 ${formatNumber(tomorrowBudget)}원씩 써야 해요.';
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('오늘 쓸 수 있어요', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 6),
+          Text(
+            isOver
+                ? '${formatNumber(overAmount)}원 초과'
+                : '${formatNumber(todayRemaining)}원',
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: color),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: const Color(0xFFF0F0F0),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '오늘 ${formatNumber(todaySpent)}원 사용  •  하루 ${formatNumber(dailyBudget)}원',
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          ),
+          if (yesterdayText != null) ...[
+            const SizedBox(height: 3),
+            Text(yesterdayText, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+          if (tomorrowText != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFCEBEB),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                tomorrowText,
+                style: const TextStyle(fontSize: 12, color: Color(0xFFE24B4A)),
+              ),
+            ),
+          ],
         ],
       ),
     );
