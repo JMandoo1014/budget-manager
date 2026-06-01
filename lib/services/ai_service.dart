@@ -142,4 +142,48 @@ class AiService {
       '기타': perCategory + remainder,
     };
   }
+
+  Future<String> generateMonthlyReport({
+    required int totalSpent,
+    required int totalBudget,
+    required Map<String, int> spentByCategory,
+    required Map<String, int> budgetByCategory,
+  }) async {
+    final categoryLines = budgetByCategory.entries.map((e) {
+      final spent = spentByCategory[e.key] ?? 0;
+      return '${e.key}: 예산 ${e.value}원 / 지출 $spent원';
+    }).join('\n');
+
+    final prompt =
+        '이번 달 예산 분석 결과야. 친근한 말투로 2~3문장 피드백 줘. 잘한 점과 아쉬운 점 모두 포함해. JSON이나 마크다운 절대 금지. 평문으로만 답해.\n'
+        '총예산: $totalBudget원\n'
+        '총지출: $totalSpent원\n'
+        '카테고리별:\n$categoryLines';
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_endpoint),
+            headers: _headers,
+            body: jsonEncode({
+              'contents': [
+                {
+                  'parts': [{'text': prompt}]
+                }
+              ],
+              'generationConfig': {
+                'thinkingConfig': {'thinkingBudget': 0},
+              },
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return _extractText(data).trim();
+      }
+    } catch (_) {}
+
+    return '이번 달 지출 패턴을 분석 중이에요.';
+  }
 }
