@@ -150,7 +150,7 @@ class AiService {
     }).join('\n');
 
     final prompt =
-        '이번 달 예산 분석 결과야. 친근한 말투로 2~3문장 피드백 줘. 잘한 점과 아쉬운 점 모두 포함해. JSON이나 마크다운 절대 금지. 평문으로만 답해.\n'
+        '이번 달 예산 분석 결과야. 반드시 존댓말로, 친근하지만 정중한 말투로 2~3문장 피드백 줘. 반말 절대 금지. 잘한 점과 아쉬운 점 모두 포함해. JSON이나 마크다운 절대 금지. 평문으로만 답해.\n'
         '총예산: $totalBudget원\n'
         '총지출: $totalSpent원\n'
         '카테고리별:\n$categoryLines';
@@ -191,7 +191,8 @@ class AiService {
   }) async {
     final prompt =
         '예산 상황을 보고 한국어로 1-2문장 경고 메시지만 줘.\n'
-        '친근하고 솔직한 말투로.\n'
+        '반드시 존댓말로. 친근하지만 정중한 말투로.\n'
+        '반말 절대 금지.\n'
         '남은예산: $remainingBudget원\n'
         '총예산: $totalBudget원\n'
         '남은일수: $remainingDays일\n'
