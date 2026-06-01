@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
+import '../services/ai_service.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
@@ -25,6 +26,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   List<Income> _incomes = [];
   bool _isLoading = true;
   bool _hasError = false;
+  String? _aiReport;
+  bool _isLoadingReport = false;
 
   final _dateFormat = DateFormat('MM/dd HH:mm');
 
@@ -57,9 +60,34 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           _incomes = incomes;
           _isLoading = false;
         });
+        _loadAiReport();
       }
     } catch (_) {
       if (mounted) setState(() { _isLoading = false; _hasError = true; });
+    }
+  }
+
+  Future<void> _loadAiReport() async {
+    if (_budget == null) return;
+    setState(() => _isLoadingReport = true);
+
+    final spentByCategory = <String, int>{};
+    for (final e in _expenses) {
+      spentByCategory[e.category] = (spentByCategory[e.category] ?? 0) + e.amount;
+    }
+    final totalSpent = spentByCategory.values.fold(0, (sum, v) => sum + v);
+    final totalBudget = _budget!.categoryBudgets.values.fold(0, (sum, v) => sum + v);
+
+    try {
+      final report = await AiService().generateMonthlyReport(
+        totalSpent: totalSpent,
+        totalBudget: totalBudget,
+        spentByCategory: spentByCategory,
+        budgetByCategory: _budget!.categoryBudgets,
+      );
+      if (mounted) setState(() { _aiReport = report; _isLoadingReport = false; });
+    } catch (_) {
+      if (mounted) setState(() { _aiReport = null; _isLoadingReport = false; });
     }
   }
 
@@ -781,12 +809,21 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildFeedbackBox() {
+    final String text;
+    if (_isLoadingReport) {
+      text = '💡 AI가 분석 중이에요...';
+    } else if (_aiReport != null && _aiReport!.isNotEmpty) {
+      text = '💡 $_aiReport';
+    } else {
+      text = '💡 이번 달 지출 패턴을 분석 중이에요.';
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: const Color(0xFFE1F5EE), borderRadius: BorderRadius.circular(12)),
-      child: const Text(
-        '💡 이번 달 지출 패턴을 분석 중이에요. AI 연동 후 맞춤 피드백을 드릴게요!',
-        style: TextStyle(fontSize: 13, color: Color(0xFF1D9E75), height: 1.5),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 13, color: Color(0xFF1D9E75), height: 1.5),
       ),
     );
   }
