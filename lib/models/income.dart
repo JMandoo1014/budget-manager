@@ -1,0 +1,42 @@
+import 'package:uuid/uuid.dart';
+
+class Income {
+  final String id;
+  final String rawInput;
+  final String category;
+  final int amount;
+  final DateTime createdAt;
+  final String? memo;
+
+  Income({
+    String? id,
+    required this.rawInput,
+    required this.category,
+    required this.amount,
+    DateTime? createdAt,
+    this.memo,
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'raw_input': rawInput,
+      'category': category,
+      'amount': amount,
+      'created_at': createdAt.toIso8601String(),
+      'memo': memo,
+    };
+  }
+
+  factory Income.fromJson(Map<String, dynamic> json) {
+    return Income(
+      id: json['id'] as String,
+      rawInput: json['raw_input'] as String,
+      category: json['category'] as String,
+      amount: json['amount'] as int,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      memo: json['memo'] as String?,
+    );
+  }
+}

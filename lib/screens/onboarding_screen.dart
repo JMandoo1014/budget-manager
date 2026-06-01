@@ -86,10 +86,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       incomeError = '수입을 입력해주세요';
     }
     if (_savingsController.text.isNotEmpty) {
+      final months = int.tryParse(_periodController.text.trim()) ?? 0;
       if (savings == 0) {
         savingsError = '저축 목표를 입력해주세요';
-      } else if (income > 0 && savings >= income) {
-        savingsError = '저축 목표는 수입보다 작아야 해요';
+      } else if (income > 0 && months > 0 && (savings ~/ months) >= income) {
+        savingsError = '월 저축 목표(${_formatter.format(savings ~/ months)}원)가 수입보다 클 수 없어요';
       }
     }
 
@@ -129,8 +130,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _showToast('목표 기간을 1개월 이상 입력해주세요!');
       return;
     }
-    if (savings >= income) {
-      _showToast('저축 목표가 수입보다 클 수 없어요!');
+    if ((savings ~/ months) >= income) {
+      _showToast('월 저축 목표(${_formatter.format(savings ~/ months)}원)가 수입보다 클 수 없어요!');
       return;
     }
 
@@ -205,10 +206,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 label: '저축 목표 (원)',
                 errorText: _savingsError,
               ),
+              Builder(builder: (context) {
+                final savings = _parseFormatted(_savingsController.text);
+                final months = int.tryParse(_periodController.text.trim()) ?? 0;
+                if (savings == 0 || months == 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Text(
+                    '월 저축 목표: ${_formatter.format(savings ~/ months)}원',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                );
+              }),
               const SizedBox(height: 16),
               _buildPlainTextField(
                 controller: _periodController,
                 label: '목표 기간 (개월)',
+                onChanged: (_) => _validateFields(),
               ),
               const SizedBox(height: 32),
               const Text(
@@ -327,6 +341,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildPlainTextField({
     required TextEditingController controller,
     required String label,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -343,6 +358,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         controller: controller,
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        onChanged: onChanged,
         decoration: _inputDecoration(label),
       ),
     );
