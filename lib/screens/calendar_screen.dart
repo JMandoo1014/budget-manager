@@ -126,7 +126,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120),
+        padding: const EdgeInsets.only(bottom: 100),
         child: Column(
           children: [
             _buildCalendarCard(),
@@ -457,7 +457,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildExpenseCard() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.only(bottom: 100),
       constraints: const BoxConstraints(minHeight: 200),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -516,7 +515,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final totalIncome = incomes.fold(0, (sum, i) => sum + i.amount);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
