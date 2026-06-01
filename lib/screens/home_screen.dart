@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../models/budget.dart';
 import '../models/expense.dart';
+import '../models/income.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
@@ -20,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Budget? _budget;
   List<Expense> _expenses = [];
+  List<Income> _incomes = [];
   bool _isLoading = true;
   bool _hasError = false;
 
@@ -48,12 +50,18 @@ class _HomeScreenState extends State<HomeScreen> {
       final now = DateTime.now();
       final budgetFuture = StorageService().getCurrentBudget();
       final expensesFuture = StorageService().getExpenses(month: now.month, year: now.year);
+      final incomesFuture = StorageService().getIncomes(month: now.month, year: now.year);
       final budget = await budgetFuture;
       final expenses = await expensesFuture;
+      List<Income> incomes = [];
+      try {
+        incomes = await incomesFuture;
+      } catch (_) {}
       if (mounted) {
         setState(() {
           _budget = budget;
           _expenses = expenses;
+          _incomes = incomes;
           _isLoading = false;
         });
       }
@@ -228,16 +236,18 @@ class _HomeScreenState extends State<HomeScreen> {
       spentByCategory[e.category] = (spentByCategory[e.category] ?? 0) + e.amount;
     }
     final totalSpent = spentByCategory.values.fold(0, (sum, v) => sum + v);
+    final extraIncome = _incomes.fold(0, (sum, i) => sum + i.amount);
     final totalBudget = budget.totalBudget;
-    final remaining = totalBudget - totalSpent;
-    final usedRatio = totalBudget > 0 ? (totalSpent / totalBudget).clamp(0.0, 1.0) : 0.0;
+    final remaining = totalBudget + extraIncome - totalSpent;
+    final effectiveBudget = totalBudget + extraIncome;
+    final usedRatio = effectiveBudget > 0 ? (totalSpent / effectiveBudget).clamp(0.0, 1.0) : 0.0;
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMainBudgetCard(totalBudget, totalSpent, remaining, usedRatio),
+          _buildMainBudgetCard(totalBudget, totalSpent, remaining, usedRatio, extraIncome),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
@@ -259,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMainBudgetCard(int totalBudget, int totalSpent, int remaining, double usedRatio) {
+  Widget _buildMainBudgetCard(int totalBudget, int totalSpent, int remaining, double usedRatio, int extraIncome) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -283,6 +293,13 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Color(0xFF1D9E75),
             ),
           ),
+          if (extraIncome > 0) ...[
+            const SizedBox(height: 2),
+            Text(
+              '+추가수입 ${formatNumber(extraIncome)}원 포함',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF1D9E75)),
+            ),
+          ],
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),

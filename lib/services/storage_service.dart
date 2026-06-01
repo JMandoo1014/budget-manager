@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/budget.dart';
 import '../models/expense.dart';
+import '../models/income.dart';
 
 class StorageService {
   static final StorageService _instance = StorageService._internal();
@@ -132,6 +133,32 @@ class StorageService {
         .eq('user_id', _userId)
         .gte('created_at', from)
         .lt('created_at', to);
+  }
+
+  Future<void> saveIncome(Income income) async {
+    await _client.from('incomes').insert({
+      'user_id': _userId,
+      ...income.toJson(),
+    });
+  }
+
+  Future<List<Income>> getIncomes({int? month, int? year}) async {
+    final now = DateTime.now();
+    final targetYear = year ?? now.year;
+    final targetMonth = month ?? now.month;
+
+    final from = DateTime(targetYear, targetMonth, 1).toIso8601String();
+    final to = DateTime(targetYear, targetMonth + 1, 1).toIso8601String();
+
+    final data = await _client
+        .from('incomes')
+        .select()
+        .eq('user_id', _userId)
+        .gte('created_at', from)
+        .lt('created_at', to)
+        .order('created_at', ascending: false);
+
+    return data.map((row) => Income.fromJson(row)).toList();
   }
 
   Future<List<Expense>> getExpenses({int? month, int? year}) async {
