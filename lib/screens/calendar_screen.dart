@@ -126,6 +126,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           children: [
             _buildCalendarCard(),
@@ -208,16 +209,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
           calendarStyle: const CalendarStyle(
             outsideDaysVisible: false,
             cellMargin: EdgeInsets.all(4),
-            todayDecoration: BoxDecoration(
+            todayDecoration: BoxDecoration(color: Colors.transparent),
+            todayTextStyle: TextStyle(
               color: Color(0xFF1D9E75),
-              shape: BoxShape.circle,
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
             ),
-            selectedDecoration: BoxDecoration(
-              color: Color(0xFFE0E0E0),
-              shape: BoxShape.circle,
+            selectedDecoration: BoxDecoration(color: Colors.transparent),
+            selectedTextStyle: TextStyle(
+              color: Color(0xFF1D9E75),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
-            todayTextStyle: TextStyle(color: Colors.white, fontSize: 13),
-            selectedTextStyle: TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold),
             weekendTextStyle: TextStyle(color: Colors.black87, fontSize: 13),
             defaultTextStyle: TextStyle(color: Colors.black87, fontSize: 13),
           ),
