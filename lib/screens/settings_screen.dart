@@ -16,6 +16,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   Budget? _budget;
+  int _extraIncome = 0;
   bool _isLoading = true;
   bool _isPro = false;
   bool _isLoadingPro = true;
@@ -30,9 +31,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadBudget() async {
     final budget = await StorageService().getCurrentBudget();
+    int extraIncome = 0;
+    try {
+      final incomes = await StorageService().getIncomes();
+      extraIncome = incomes.fold(0, (sum, i) => sum + i.amount);
+    } catch (_) {}
     if (mounted) {
       setState(() {
         _budget = budget;
+        _extraIncome = extraIncome;
         _isLoading = false;
       });
     }
@@ -195,12 +202,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('이번 달 예산', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                    Text(
-                      _budget != null ? '${formatNumber(_budget!.totalBudget)}원' : '미설정',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
+                    if (_budget != null)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${formatNumber(_budget!.totalBudget + _extraIncome)}원',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          if (_extraIncome > 0)
+                            Text(
+                              '+추가수입 ${formatNumber(_extraIncome)}원 포함',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF1D9E75)),
+                            ),
+                        ],
+                      )
+                    else
+                      const Text('미설정', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 12),

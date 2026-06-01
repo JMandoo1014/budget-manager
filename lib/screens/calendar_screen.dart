@@ -26,6 +26,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Map<DateTime, int> _dailyIncomes = {};
   bool _isLoading = true;
 
+  DateTime _normalizeDate(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
   @override
   void initState() {
     super.initState();
@@ -46,14 +49,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       final totals = <DateTime, int>{};
       for (final e in expenses) {
-        final local = e.createdAt.toLocal();
-        final key = DateTime(local.year, local.month, local.day);
+        final key = _normalizeDate(e.createdAt.toLocal());
         totals[key] = (totals[key] ?? 0) + e.amount;
       }
       final incomeTotals = <DateTime, int>{};
       for (final i in incomes) {
-        final local = i.createdAt.toLocal();
-        final key = DateTime(local.year, local.month, local.day);
+        final key = _normalizeDate(i.createdAt.toLocal());
         incomeTotals[key] = (incomeTotals[key] ?? 0) + i.amount;
       }
       if (mounted) {
@@ -71,21 +72,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   List<Expense> get _selectedExpenses {
-    return _expenses.where((e) {
-      final local = e.createdAt.toLocal();
-      return local.year == _selectedDay.year &&
-          local.month == _selectedDay.month &&
-          local.day == _selectedDay.day;
-    }).toList();
+    return _expenses
+        .where((e) => _normalizeDate(e.createdAt.toLocal()) == _selectedDay)
+        .toList();
   }
 
   List<Income> get _selectedIncomes {
-    return _incomes.where((i) {
-      final local = i.createdAt.toLocal();
-      return local.year == _selectedDay.year &&
-          local.month == _selectedDay.month &&
-          local.day == _selectedDay.day;
-    }).toList();
+    return _incomes
+        .where((i) => _normalizeDate(i.createdAt.toLocal()) == _selectedDay)
+        .toList();
   }
 
   String _incomeEmoji(String category) {
@@ -178,7 +173,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           availableCalendarFormats: const {CalendarFormat.month: 'Month'},
           rowHeight: 68,
           eventLoader: (day) {
-            final key = DateTime(day.year, day.month, day.day);
+            final key = _normalizeDate(day);
             final hasExpense = (_dailyTotals[key] ?? 0) > 0;
             final hasIncome = (_dailyIncomes[key] ?? 0) > 0;
             return hasExpense || hasIncome ? [1] : [];
@@ -227,7 +222,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           calendarBuilders: CalendarBuilders(
             markerBuilder: (context, day, events) {
               if (events.isEmpty) return null;
-              final key = DateTime(day.year, day.month, day.day);
+              final key = _normalizeDate(day);
               final expense = _dailyTotals[key] ?? 0;
               final income = _dailyIncomes[key] ?? 0;
               return Positioned(
@@ -258,15 +253,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _recalculateTotals() {
     final totals = <DateTime, int>{};
     for (final e in _expenses) {
-      final local = e.createdAt.toLocal();
-      final key = DateTime(local.year, local.month, local.day);
+      final key = _normalizeDate(e.createdAt.toLocal());
       totals[key] = (totals[key] ?? 0) + e.amount;
     }
     _dailyTotals = totals;
     final incomeTotals = <DateTime, int>{};
     for (final i in _incomes) {
-      final local = i.createdAt.toLocal();
-      final key = DateTime(local.year, local.month, local.day);
+      final key = _normalizeDate(i.createdAt.toLocal());
       incomeTotals[key] = (incomeTotals[key] ?? 0) + i.amount;
     }
     _dailyIncomes = incomeTotals;
