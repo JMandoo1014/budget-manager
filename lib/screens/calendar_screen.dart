@@ -49,12 +49,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       final totals = <DateTime, int>{};
       for (final e in expenses) {
-        final key = _normalizeDate(e.createdAt.toLocal());
+        final key = _normalizeDate(e.createdAt);
         totals[key] = (totals[key] ?? 0) + e.amount;
       }
       final incomeTotals = <DateTime, int>{};
       for (final i in incomes) {
-        final key = _normalizeDate(i.createdAt.toLocal());
+        final key = _normalizeDate(i.createdAt);
         incomeTotals[key] = (incomeTotals[key] ?? 0) + i.amount;
       }
       if (mounted) {
@@ -73,13 +73,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   List<Expense> get _selectedExpenses {
     return _expenses
-        .where((e) => _normalizeDate(e.createdAt.toLocal()) == _selectedDay)
+        .where((e) => _normalizeDate(e.createdAt) == _selectedDay)
         .toList();
   }
 
   List<Income> get _selectedIncomes {
     return _incomes
-        .where((i) => _normalizeDate(i.createdAt.toLocal()) == _selectedDay)
+        .where((i) => _normalizeDate(i.createdAt) == _selectedDay)
         .toList();
   }
 
@@ -258,13 +258,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _recalculateTotals() {
     final totals = <DateTime, int>{};
     for (final e in _expenses) {
-      final key = _normalizeDate(e.createdAt.toLocal());
+      final key = _normalizeDate(e.createdAt);
       totals[key] = (totals[key] ?? 0) + e.amount;
     }
     _dailyTotals = totals;
     final incomeTotals = <DateTime, int>{};
     for (final i in _incomes) {
-      final key = _normalizeDate(i.createdAt.toLocal());
+      final key = _normalizeDate(i.createdAt);
       incomeTotals[key] = (incomeTotals[key] ?? 0) + i.amount;
     }
     _dailyIncomes = incomeTotals;
