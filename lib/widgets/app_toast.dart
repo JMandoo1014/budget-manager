@@ -47,7 +47,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _slide = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+    _slide = Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut, reverseCurve: Curves.easeIn),
     );
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
@@ -75,7 +75,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
     return Positioned(
       left: 24,
       right: 24,
-      bottom: 40,
+      top: 60,
       child: Material(
         color: Colors.transparent,
         child: SlideTransition(
