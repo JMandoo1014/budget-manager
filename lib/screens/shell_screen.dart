@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/app_colors.dart';
 import 'home_screen.dart';
 import 'input_screen.dart';
 import 'calendar_screen.dart';
@@ -117,30 +118,20 @@ class _ShellScreenState extends State<ShellScreen> {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            // 선택 배경 (opacity로 페이드 인/아웃)
                             Opacity(
                               opacity: opacity,
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE1F5EE),
+                                  color: AppColors.primaryLight,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: Icon(
-                                  tab.selected,
-                                  color: const Color(0xFF1D9E75),
-                                  size: 24,
-                                ),
+                                child: Icon(tab.selected, color: AppColors.primary, size: 24),
                               ),
                             ),
-                            // 미선택 아이콘 (반대 opacity)
                             Opacity(
                               opacity: (1.0 - opacity).clamp(0.0, 1.0),
-                              child: Icon(
-                                tab.unselected,
-                                color: const Color(0xFFBBBBBB),
-                                size: 24,
-                              ),
+                              child: Icon(tab.unselected, color: AppColors.iconUnselected, size: 24),
                             ),
                           ],
                         ),
@@ -161,9 +152,5 @@ class _TabItem {
   final IconData selected;
   final IconData unselected;
 
-  const _TabItem({
-    required this.selected,
-    required this.unselected,
-  });
+  const _TabItem({required this.selected, required this.unselected});
 }
-

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'constants/app_colors.dart';
 import 'screens/shell_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
@@ -103,10 +104,10 @@ class _BudgetManagerAppState extends State<BudgetManagerApp> {
       themeMode: ThemeMode.light,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1D9E75),
+          seedColor: AppColors.primary,
           brightness: Brightness.light,
         ),
-        primaryColor: const Color(0xFF1D9E75),
+        primaryColor: AppColors.primary,
         useMaterial3: true,
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {

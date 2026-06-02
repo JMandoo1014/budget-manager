@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../constants/app_colors.dart';
 import '../models/budget.dart';
 import '../services/ai_service.dart';
 import '../services/storage_service.dart';
@@ -150,7 +151,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           context.go('/home');
         }
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _isLoading = false);
         _showToast('저장에 실패했어요. 다시 시도해주세요.');
@@ -179,15 +180,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              const Text(
-                '이번 달 설정',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              const Text('이번 달 설정', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
-              const Text(
-                '수입과 목표를 알려주세요!',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
+              const Text('수입과 목표를 알려주세요!', style: TextStyle(fontSize: 14, color: Colors.grey)),
               const SizedBox(height: 32),
               _buildFormattedTextField(
                 controller: _incomeController,
@@ -219,10 +214,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onChanged: (_) => _validateFields(),
               ),
               const SizedBox(height: 32),
-              const Text(
-                '소비 패턴을 선택해주세요!',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
+              const Text('소비 패턴을 선택해주세요!', style: TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -240,7 +232,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Checkbox(
                         value: _autoRollover,
                         onChanged: (v) => setState(() => _autoRollover = v ?? true),
-                        activeColor: const Color(0xFF1D9E75),
+                        activeColor: AppColors.primary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       ),
                     ),
@@ -260,7 +252,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1D9E75).withValues(alpha: 0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),
@@ -272,30 +264,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _onSubmit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1D9E75),
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFF1D9E75),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      disabledBackgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                           )
-                        : const Text(
-                            'AI 예산 짜기',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        : const Text('AI 예산 짜기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),
@@ -362,25 +343,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return InputDecoration(
       labelText: label,
       errorText: errorText,
-      labelStyle: const TextStyle(color: Color(0xFF999999), fontSize: 14),
-      floatingLabelStyle: const TextStyle(color: Color(0xFF1D9E75), fontSize: 14),
+      labelStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+      floatingLabelStyle: const TextStyle(color: AppColors.primary, fontSize: 14),
       filled: true,
       fillColor: Colors.white,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFEEEEEE), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.border, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF1D9E75), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE24B4A), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE24B4A), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
     );
@@ -401,14 +382,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE1F5EE) : const Color(0xFFF5F5F5),
+          color: selected ? AppColors.primaryLight : AppColors.chipUnselected,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
-            color: selected ? const Color(0xFF1D9E75) : Colors.grey,
+            color: selected ? AppColors.primary : Colors.grey,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../constants/app_colors.dart';
+import '../constants/app_strings.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
@@ -10,6 +12,7 @@ import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
+import '../widgets/category_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.refreshTrigger = 0});
@@ -157,11 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
         .fold(0, (sum, e) => sum + e.amount);
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8FA),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -188,14 +190,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? _buildEmpty()
                   : RefreshIndicator(
                       onRefresh: _loadData,
-                      color: const Color(0xFF1D9E75),
+                      color: AppColors.primary,
                       child: _buildContent(),
                     ),
     );
   }
 
   Widget _buildSkeleton() {
-    const grey = Color(0xFFE8E8E8);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -203,19 +204,19 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Container(
             height: 130,
-            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(16)),
           ),
           const SizedBox(height: 20),
           Container(
             width: 70,
             height: 14,
             margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(4)),
           ),
-          ...List.generate(5, (i) => Container(
+          ...List.generate(5, (_) => Container(
             height: 80,
             margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(12)),
           )),
         ],
       ),
@@ -232,24 +233,24 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text('😢', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
             const Text(
-              '데이터를 불러오지 못했어요.',
+              AppStrings.loadFailed,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
-            const Text('다시 시도해주세요.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Text(AppStrings.retryPrompt, style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 20),
             SizedBox(
               height: 44,
               child: ElevatedButton(
                 onPressed: _loadData,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1D9E75),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                 ),
-                child: const Text('다시 시도', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                child: const Text(AppStrings.retry, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -275,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const Text('💰', style: TextStyle(fontSize: 40)),
               const SizedBox(height: 12),
               const Text(
-                '이번 달 예산을 설정해주세요!',
+                AppStrings.noBudget,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
@@ -292,12 +293,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ElevatedButton(
                   onPressed: () => context.go('/'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D9E75),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: const Text('설정하기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  child: const Text(AppStrings.setup, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -343,7 +344,14 @@ class _HomeScreenState extends State<HomeScreen> {
             final spent = spentByCategory[entry.key] ?? 0;
             final color = cat.progressColor(spent, limit);
             final categoryExpenses = _expenses.where((e) => e.category == entry.key).toList();
-            return _buildCategoryCard(emoji, entry.key, spent, limit, color, categoryExpenses);
+            return CategoryCard(
+              emoji: emoji,
+              name: entry.key,
+              spent: spent,
+              limit: limit,
+              color: color,
+              onTap: () => _showCategoryDetail(entry.key, emoji, spent, limit, categoryExpenses),
+            );
           }),
           const SizedBox(height: 100),
         ],
@@ -356,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3E0),
+        color: AppColors.warningBg,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -367,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Text(
               _isLoadingWarning ? 'AI가 분석 중...' : (_aiWarning ?? ''),
-              style: const TextStyle(fontSize: 13, color: Color(0xFFEF9F27), height: 1.5),
+              style: const TextStyle(fontSize: 13, color: AppColors.warning, height: 1.5),
             ),
           ),
         ],
@@ -386,24 +394,17 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '남은 예산',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
+          const Text('남은 예산', style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 6),
           Text(
             '${formatNumber(remaining)}원',
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1D9E75),
-            ),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary),
           ),
           if (extraIncome > 0) ...[
             const SizedBox(height: 2),
             Text(
               '+추가수입 ${formatNumber(extraIncome)}원 포함',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF1D9E75)),
+              style: const TextStyle(fontSize: 11, color: AppColors.primary),
             ),
           ],
           const SizedBox(height: 12),
@@ -412,8 +413,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: LinearProgressIndicator(
               value: usedRatio,
               minHeight: 8,
-              backgroundColor: const Color(0xFFE1F5EE),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1D9E75)),
+              backgroundColor: AppColors.primaryLight,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           ),
           const SizedBox(height: 6),
@@ -436,12 +437,12 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Color(0xFFE24B4A), size: 20),
+            const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 '이번 달 예산을 ${formatNumber(-remaining)}원 초과했어요',
-                style: const TextStyle(fontSize: 13, color: Color(0xFFE24B4A)),
+                style: const TextStyle(fontSize: 13, color: AppColors.danger),
               ),
             ),
           ],
@@ -457,7 +458,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final progress = dailyBudget > 0
         ? (todaySpent / dailyBudget).clamp(0.0, 1.0)
         : (todaySpent > 0 ? 1.0 : 0.0);
-    final color = isOver ? const Color(0xFFE24B4A) : const Color(0xFF1D9E75);
+    final color = isOver ? AppColors.danger : AppColors.primary;
 
     final now = DateTime.now();
     final isFirstDay = now.day == 1;
@@ -484,19 +485,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('오늘 쓸 수 있어요', style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 6),
           Text(
-            isOver
-                ? '${formatNumber(overAmount)}원 초과'
-                : '${formatNumber(todayRemaining)}원',
+            isOver ? '${formatNumber(overAmount)}원 초과' : '${formatNumber(todayRemaining)}원',
             style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: color),
           ),
           const SizedBox(height: 12),
@@ -505,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: const Color(0xFFF0F0F0),
+              backgroundColor: AppColors.divider,
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -524,67 +520,16 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFFCEBEB),
+                color: AppColors.dangerLight,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 tomorrowText,
-                style: const TextStyle(fontSize: 12, color: Color(0xFFE24B4A)),
+                style: const TextStyle(fontSize: 12, color: AppColors.danger),
               ),
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryCard(String emoji, String name, int spent, int limit, Color color, List<Expense> expenses) {
-    final progress = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
-    final isOver = spent > limit;
-    return GestureDetector(
-      onTap: () => _showCategoryDetail(name, emoji, spent, limit, expenses),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '$emoji $name',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                    ),
-                    if (isOver) ...[
-                      const SizedBox(width: 6),
-                      const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFE24B4A)),
-                    ],
-                  ],
-                ),
-                Text(
-                  '${formatNumber(spent)}원 / ${formatNumber(limit)}원',
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: const Color(0xFFF0F0F0),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -632,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: expenses.length,
-                    separatorBuilder: (context, idx) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final e = expenses[i];
                       return Padding(
