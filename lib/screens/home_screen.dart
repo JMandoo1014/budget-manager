@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
@@ -80,6 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  static const _cacheKeyWarning = 'ai_warning_cache';
+  static const _cacheKeyWarningDate = 'ai_warning_date';
+
   Future<void> _checkBudgetWarning() async {
     if (_budget == null) return;
 
@@ -94,6 +98,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (usedRatio < 0.8) return;
 
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final prefs = await SharedPreferences.getInstance();
+    final cachedDate = prefs.getString(_cacheKeyWarningDate);
+    final cachedWarning = prefs.getString(_cacheKeyWarning);
+
+    if (cachedDate == today && cachedWarning != null && cachedWarning.isNotEmpty) {
+      if (mounted) setState(() { _aiWarning = cachedWarning; _isLoadingWarning = false; });
+      return;
+    }
+
     setState(() => _isLoadingWarning = true);
     try {
       final warning = await AiService().generateBudgetWarning(
@@ -103,6 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
         spentByCategory: spentByCategory,
         budgetByCategory: _budget!.categoryBudgets,
       );
+      await prefs.setString(_cacheKeyWarning, warning);
+      await prefs.setString(_cacheKeyWarningDate, today);
       if (mounted) setState(() { _aiWarning = warning; _isLoadingWarning = false; });
     } catch (_) {
       if (mounted) setState(() { _aiWarning = null; _isLoadingWarning = false; });
