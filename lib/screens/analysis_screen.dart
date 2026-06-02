@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_categories.dart';
 import '../constants/app_colors.dart';
@@ -67,8 +68,22 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     }
   }
 
+  static const _cacheKeyReport = 'ai_report_cache';
+  static const _cacheKeyReportDate = 'ai_report_date';
+
   Future<void> _loadAiReport() async {
     if (_budget == null) return;
+
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final prefs = await SharedPreferences.getInstance();
+    final cachedDate = prefs.getString(_cacheKeyReportDate);
+    final cachedReport = prefs.getString(_cacheKeyReport);
+
+    if (cachedDate == today && cachedReport != null && cachedReport.isNotEmpty) {
+      if (mounted) setState(() { _aiReport = cachedReport; _isLoadingReport = false; });
+      return;
+    }
+
     setState(() => _isLoadingReport = true);
 
     final spentByCategory = <String, int>{};
@@ -85,6 +100,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         spentByCategory: spentByCategory,
         budgetByCategory: _budget!.categoryBudgets,
       );
+      await prefs.setString(_cacheKeyReport, report);
+      await prefs.setString(_cacheKeyReportDate, today);
       if (mounted) setState(() { _aiReport = report; _isLoadingReport = false; });
     } catch (_) {
       if (mounted) setState(() { _aiReport = null; _isLoadingReport = false; });
