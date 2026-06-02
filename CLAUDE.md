@@ -127,6 +127,15 @@ GEMINI_API_KEY=...
 - AI 실패 시 키워드 기반 fallback (`_fallbackClassify`, `_fallbackClassifyIncome`)
 - AI 분류 debounce: 800ms + generation counter (race condition 방지)
 
+### AI 응답 캐싱 (SharedPreferences, 일 1회)
+
+| 화면 | 캐시 키 | 날짜 키 |
+|---|---|---|
+| AnalysisScreen — 월간 리포트 | `ai_report_cache` | `ai_report_date` |
+| HomeScreen — 예산 경고 | `ai_warning_cache` | `ai_warning_date` |
+
+날짜 포맷: `yyyy-MM-dd`. 진입 시 저장된 날짜 == 오늘이면 캐시 즉시 표시, 다르면 AI 호출 후 저장.
+
 ## Screen Status
 
 | Screen | Status |
