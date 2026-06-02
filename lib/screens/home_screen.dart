@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
+import '../utils/ai_cache.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
@@ -81,9 +82,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  static const _cacheKeyWarning = 'ai_warning_cache';
-  static const _cacheKeyWarningDate = 'ai_warning_date';
-
   Future<void> _checkBudgetWarning() async {
     if (_budget == null) return;
 
@@ -100,8 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final prefs = await SharedPreferences.getInstance();
-    final cachedDate = prefs.getString(_cacheKeyWarningDate);
-    final cachedWarning = prefs.getString(_cacheKeyWarning);
+    final cachedDate = prefs.getString(AiCache.keyWarningDate);
+    final cachedWarning = prefs.getString(AiCache.keyWarning);
 
     if (cachedDate == today && cachedWarning != null && cachedWarning.isNotEmpty) {
       if (mounted) setState(() { _aiWarning = cachedWarning; _isLoadingWarning = false; });
@@ -117,8 +115,8 @@ class _HomeScreenState extends State<HomeScreen> {
         spentByCategory: spentByCategory,
         budgetByCategory: _budget!.categoryBudgets,
       );
-      await prefs.setString(_cacheKeyWarning, warning);
-      await prefs.setString(_cacheKeyWarningDate, today);
+      await prefs.setString(AiCache.keyWarning, warning);
+      await prefs.setString(AiCache.keyWarningDate, today);
       if (mounted) setState(() { _aiWarning = warning; _isLoadingWarning = false; });
     } catch (_) {
       if (mounted) setState(() { _aiWarning = null; _isLoadingWarning = false; });

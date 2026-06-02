@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../constants/app_categories.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
+import '../utils/ai_cache.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
 import '../services/storage_service.dart';
@@ -149,6 +151,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
     try {
       await StorageService().deleteExpense(expense.id);
+      await AiCache.invalidateAll();
       if (mounted) AppToast.show(context, '지출이 삭제됐어요.');
     } catch (_) {
       if (mounted) {
@@ -176,6 +179,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
     try {
       await StorageService().updateExpense(updated);
+      await AiCache.invalidateAll();
       if (mounted) AppToast.show(context, AppStrings.updated);
     } catch (_) {
       if (mounted) {
@@ -186,6 +190,166 @@ class _CalendarScreenState extends State<CalendarScreen> {
         AppToast.show(context, AppStrings.updateFailed, isError: true);
       }
     }
+  }
+
+  Future<void> _deleteIncome(Income income) async {
+    final idx = _incomes.indexOf(income);
+    setState(() {
+      _incomes.remove(income);
+      _recalculateTotals();
+    });
+    try {
+      await StorageService().deleteIncome(income.id);
+      await AiCache.invalidateAll();
+      if (mounted) AppToast.show(context, '수입이 삭제됐어요.');
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _incomes.insert(idx, income);
+          _recalculateTotals();
+        });
+        AppToast.show(context, AppStrings.deleteFailed, isError: true);
+      }
+    }
+  }
+
+  Future<void> _updateIncome(Income income, int amount, String category) async {
+    final idx = _incomes.indexOf(income);
+    final updated = Income(
+      id: income.id,
+      rawInput: income.rawInput,
+      category: category,
+      amount: amount,
+      createdAt: income.createdAt,
+    );
+    setState(() {
+      _incomes[idx] = updated;
+      _recalculateTotals();
+    });
+    try {
+      await StorageService().updateIncome(updated);
+      await AiCache.invalidateAll();
+      if (mounted) AppToast.show(context, AppStrings.updated);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _incomes[idx] = income;
+          _recalculateTotals();
+        });
+        AppToast.show(context, AppStrings.updateFailed, isError: true);
+      }
+    }
+  }
+
+  void _showIncomeEditSheet(Income income) {
+    final formatter = NumberFormat('#,###');
+    final amountCtrl = TextEditingController(text: formatter.format(income.amount));
+    var selectedCategory = income.category;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('수입 수정', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
+                onChanged: (v) {
+                  final digits = v.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
+                  if (digits.isEmpty) {
+                    amountCtrl.value = const TextEditingValue(text: '');
+                  } else {
+                    final n = int.tryParse(digits);
+                    if (n != null) {
+                      final formatted = formatter.format(n);
+                      amountCtrl.value = TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: '금액 (원)',
+                  labelStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+                  floatingLabelStyle: const TextStyle(color: AppColors.primary, fontSize: 14),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.border, width: 1.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: AppCategories.incomeList.map((item) {
+                  final selected = selectedCategory == item.$2;
+                  return GestureDetector(
+                    onTap: () => setSheetState(() => selectedCategory = item.$2),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.primaryLight : AppColors.chipUnselected,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${item.$1} ${item.$2}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: selected ? AppColors.primary : Colors.grey,
+                          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final digits = amountCtrl.text.replaceAll(',', '');
+                    final amount = int.tryParse(digits) ?? 0;
+                    if (amount == 0) return;
+                    Navigator.pop(ctx);
+                    _updateIncome(income, amount, selectedCategory);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text(AppStrings.save, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showExpenseEditSheet(Expense expense) {
@@ -535,25 +699,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
             return Column(
               children: [
                 if (idx > 0) const Divider(height: 1, color: AppColors.divider),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    children: [
-                      Text(cat.incomeEmoji(i.category), style: const TextStyle(fontSize: 22)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(i.rawInput, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 2),
-                            Text(i.category, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          ],
-                        ),
+                Dismissible(
+                  key: ValueKey('income_${i.id}'),
+                  direction: DismissDirection.endToStart,
+                  confirmDismiss: (_) => _confirmDelete('이 수입을 삭제할까요?'),
+                  onDismissed: (_) => _deleteIncome(i),
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    color: AppColors.danger,
+                    child: const Icon(Icons.delete_outline, color: Colors.white),
+                  ),
+                  child: GestureDetector(
+                    onLongPress: () => _showIncomeEditSheet(i),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          Text(cat.incomeEmoji(i.category), style: const TextStyle(fontSize: 22)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(i.rawInput, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 2),
+                                Text(i.category, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                          Text('+${formatNumber(i.amount)}원',
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        ],
                       ),
-                      Text('+${formatNumber(i.amount)}원',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                    ],
+                    ),
                   ),
                 ),
               ],

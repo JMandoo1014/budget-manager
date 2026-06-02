@@ -12,6 +12,7 @@ import '../models/expense.dart';
 import '../models/income.dart';
 import '../services/ai_service.dart';
 import '../services/storage_service.dart';
+import '../utils/ai_cache.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
 import '../widgets/app_tab_selector.dart';
@@ -68,16 +69,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     }
   }
 
-  static const _cacheKeyReport = 'ai_report_cache';
-  static const _cacheKeyReportDate = 'ai_report_date';
-
   Future<void> _loadAiReport() async {
     if (_budget == null) return;
 
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final prefs = await SharedPreferences.getInstance();
-    final cachedDate = prefs.getString(_cacheKeyReportDate);
-    final cachedReport = prefs.getString(_cacheKeyReport);
+    final cachedDate = prefs.getString(AiCache.keyReportDate);
+    final cachedReport = prefs.getString(AiCache.keyReport);
 
     if (cachedDate == today && cachedReport != null && cachedReport.isNotEmpty) {
       if (mounted) setState(() { _aiReport = cachedReport; _isLoadingReport = false; });
@@ -100,8 +98,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         spentByCategory: spentByCategory,
         budgetByCategory: _budget!.categoryBudgets,
       );
-      await prefs.setString(_cacheKeyReport, report);
-      await prefs.setString(_cacheKeyReportDate, today);
+      await prefs.setString(AiCache.keyReport, report);
+      await prefs.setString(AiCache.keyReportDate, today);
       if (mounted) setState(() { _aiReport = report; _isLoadingReport = false; });
     } catch (_) {
       if (mounted) setState(() { _aiReport = null; _isLoadingReport = false; });
@@ -137,7 +135,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     setState(() => _expenses.removeWhere((e) => e.id == expense.id));
     try {
       await StorageService().deleteExpense(expense.id);
-      if (mounted) AppToast.show(context, '지출이 삭제됐어요.');
+      await AiCache.invalidateAll();
+      if (mounted) {
+        AppToast.show(context, '지출이 삭제됐어요.');
+        _loadAiReport();
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _expenses.insert(0, expense));
@@ -161,7 +163,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
     try {
       await StorageService().updateExpense(updated);
-      if (mounted) AppToast.show(context, AppStrings.updated);
+      await AiCache.invalidateAll();
+      if (mounted) {
+        AppToast.show(context, AppStrings.updated);
+        _loadAiReport();
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -227,7 +233,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     setState(() => _incomes.removeWhere((i) => i.id == income.id));
     try {
       await StorageService().deleteIncome(income.id);
-      if (mounted) AppToast.show(context, '수입이 삭제됐어요.');
+      await AiCache.invalidateAll();
+      if (mounted) {
+        AppToast.show(context, '수입이 삭제됐어요.');
+        _loadAiReport();
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _incomes.insert(0, income));
@@ -251,7 +261,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
     try {
       await StorageService().updateIncome(updated);
-      if (mounted) AppToast.show(context, AppStrings.updated);
+      await AiCache.invalidateAll();
+      if (mounted) {
+        AppToast.show(context, AppStrings.updated);
+        _loadAiReport();
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
