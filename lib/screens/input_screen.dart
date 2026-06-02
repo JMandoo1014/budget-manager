@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../constants/app_categories.dart';
+import '../constants/app_colors.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
 import '../services/ai_service.dart';
@@ -10,6 +12,7 @@ import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
+import '../widgets/app_tab_selector.dart';
 import '../widgets/app_toast.dart';
 
 class InputScreen extends StatefulWidget {
@@ -44,9 +47,6 @@ class _InputScreenState extends State<InputScreen> {
   bool _isClassifyingIncome = false;
   bool _isSavingIncome = false;
 
-  static const _warningCategories = {'술', '카페'};
-  static const _incomeCategories = ['알바', '용돈', '기타수입'];
-
   @override
   void dispose() {
     _debounceTimer?.cancel();
@@ -58,7 +58,7 @@ class _InputScreenState extends State<InputScreen> {
 
   // ── 지출 ──────────────────────────────────────────────
   bool get _hasInput => _input.trim().isNotEmpty;
-  bool get _showWarning => _warningCategories.contains(_category);
+  bool get _showWarning => AppCategories.warningCategories.contains(_category);
   String get _categoryEmoji => cat.categoryEmoji(_category);
   String get _formattedAmount => _amount == 0 ? '0원' : '${formatNumber(_amount)}원';
 
@@ -120,7 +120,7 @@ class _InputScreenState extends State<InputScreen> {
         });
         AppToast.show(context, '지출이 기록됐어요! 💰');
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _isSaving = false);
         AppToast.show(context, '저장에 실패했어요.', isError: true);
@@ -173,21 +173,7 @@ class _InputScreenState extends State<InputScreen> {
                       setState(() => _category = item.$2);
                       Navigator.pop(context);
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFE1F5EE) : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${item.$1} ${item.$2}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isSelected ? const Color(0xFF1D9E75) : Colors.grey,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
+                    child: _buildChip(item.$1, item.$2, isSelected),
                   );
                 }).toList(),
               ),
@@ -261,7 +247,7 @@ class _InputScreenState extends State<InputScreen> {
         });
         AppToast.show(context, '수입이 기록됐어요! 💵');
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _isSavingIncome = false);
         AppToast.show(context, '저장에 실패했어요.', isError: true);
@@ -288,29 +274,14 @@ class _InputScreenState extends State<InputScreen> {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: _incomeCategories.map((c) {
-                  final isSelected = _incomeCategory == c;
-                  final emoji = cat.incomeEmoji(c);
+                children: AppCategories.incomeList.map((item) {
+                  final isSelected = _incomeCategory == item.$2;
                   return GestureDetector(
                     onTap: () {
-                      setState(() => _incomeCategory = c);
+                      setState(() => _incomeCategory = item.$2);
                       Navigator.pop(context);
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFE1F5EE) : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '$emoji $c',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isSelected ? const Color(0xFF1D9E75) : Colors.grey,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
+                    child: _buildChip(item.$1, item.$2, isSelected),
                   );
                 }).toList(),
               ),
@@ -322,12 +293,30 @@ class _InputScreenState extends State<InputScreen> {
     );
   }
 
+  Widget _buildChip(String emoji, String label, bool isSelected) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.primaryLight : AppColors.chipUnselected,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '$emoji $label',
+        style: TextStyle(
+          fontSize: 14,
+          color: isSelected ? AppColors.primary : Colors.grey,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
   // ── 빌드 ──────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFF8F8FA),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -338,60 +327,19 @@ class _InputScreenState extends State<InputScreen> {
       ),
       body: Column(
         children: [
-          _buildTabSelector(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            child: AppTabSelector(
+              tabs: const ['지출', '수입'],
+              selectedIndex: _tabIndex,
+              onTabChanged: (i) => setState(() => _tabIndex = i),
+            ),
+          ),
           Expanded(
             child: _tabIndex == 0 ? _buildExpenseContent() : _buildIncomeContent(),
           ),
           _buildBottomButton(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTabSelector() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0F0F0),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            _buildTabItem('지출', 0),
-            _buildTabItem('수입', 1),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabItem(String label, int index) {
-    final isSelected = _tabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _tabIndex = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: isSelected
-                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 1))]
-                : null,
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected ? Colors.black87 : Colors.grey,
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -457,11 +405,11 @@ class _InputScreenState extends State<InputScreen> {
         contentPadding: const EdgeInsets.all(16),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF1D9E75)),
+          borderSide: const BorderSide(color: AppColors.primary),
         ),
       ),
     );
@@ -471,7 +419,7 @@ class _InputScreenState extends State<InputScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8FA),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: _isClassifying
@@ -481,7 +429,7 @@ class _InputScreenState extends State<InputScreen> {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D9E75)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                 ),
               ),
             )
@@ -498,7 +446,7 @@ class _InputScreenState extends State<InputScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8FA),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: _isClassifyingIncome
@@ -508,7 +456,7 @@ class _InputScreenState extends State<InputScreen> {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D9E75)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                 ),
               ),
             )
@@ -536,12 +484,12 @@ class _InputScreenState extends State<InputScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFE1F5EE),
+                color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 '$emoji $category',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF1D9E75), fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -566,7 +514,7 @@ class _InputScreenState extends State<InputScreen> {
             ),
             child: const Text(
               '카테고리 수정',
-              style: TextStyle(fontSize: 12, color: Color(0xFF1D9E75)),
+              style: TextStyle(fontSize: 12, color: AppColors.primary),
             ),
           ),
         ),
@@ -578,7 +526,7 @@ class _InputScreenState extends State<InputScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8EC),
+        color: AppColors.warningLightBg,
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Row(
@@ -586,7 +534,7 @@ class _InputScreenState extends State<InputScreen> {
           Expanded(
             child: Text(
               '⚠ 이 카테고리 예산을 많이 썼어요. 지출을 확인해보세요.',
-              style: TextStyle(fontSize: 12, color: Color(0xFFEF9F27)),
+              style: TextStyle(fontSize: 12, color: AppColors.warning),
             ),
           ),
         ],
@@ -621,9 +569,9 @@ class _InputScreenState extends State<InputScreen> {
           child: ElevatedButton(
             onPressed: onPressed,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1D9E75),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF1D9E75),
+              disabledBackgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_colors.dart';
+
 class AppToast {
   static OverlayEntry? _current;
 
@@ -71,7 +73,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isError ? const Color(0xFFE24B4A) : const Color(0xFF1D9E75);
+    final bgColor = widget.isError ? AppColors.danger : AppColors.primary;
     return Positioned(
       left: 24,
       right: 24,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/app_colors.dart';
+import '../constants/app_strings.dart';
 import '../models/budget.dart';
 import '../services/purchase_service.dart';
 import '../services/storage_service.dart';
@@ -79,7 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() => _isPro = isPro);
         AppToast.show(context, isPro ? '구매가 복원됐어요! ✅' : '복원할 구매 내역이 없어요.');
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) AppToast.show(context, '복원에 실패했어요.');
     }
   }
@@ -93,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await StorageService().updateAutoRollover(value);
       if (mounted) setState(() => _budget = _budget?.copyWith(autoRollover: value));
-    } catch (e) {
+    } catch (_) {
       if (mounted) AppToast.show(context, '변경에 실패했어요.');
     }
   }
@@ -115,13 +117,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+            child: const Text(AppStrings.cancel, style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
               '초기화',
-              style: TextStyle(color: Color(0xFFE24B4A), fontWeight: FontWeight.w600),
+              style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -133,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await StorageService().deleteMonthExpenses();
       if (mounted) AppToast.show(context, '지출 내역을 초기화했어요.');
-    } catch (e) {
+    } catch (_) {
       if (mounted) AppToast.show(context, '초기화에 실패했어요.');
     }
   }
@@ -141,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8FA),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -157,24 +159,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             _buildProfileCard(),
             const SizedBox(height: 16),
-            const Text(
-              '구독',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const Text('구독', style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 8),
             _buildProSection(),
             const SizedBox(height: 16),
-            const Text(
-              '관리',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const Text('관리', style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 8),
             _buildMenuSection(),
             const SizedBox(height: 16),
-            const Text(
-              '앱 정보',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const Text('앱 정보', style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 8),
             _buildInfoSection(),
           ],
@@ -186,18 +179,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildProfileCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
                 const CircleAvatar(
                   radius: 28,
-                  backgroundColor: Color(0xFFE1F5EE),
-                  child: Icon(Icons.person_rounded, color: Color(0xFF1D9E75), size: 28),
+                  backgroundColor: AppColors.primaryLight,
+                  child: Icon(Icons.person_rounded, color: AppColors.primary, size: 28),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -216,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           if (_extraIncome > 0)
                             Text(
                               '+추가수입 ${formatNumber(_extraIncome)}원 포함',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF1D9E75)),
+                              style: const TextStyle(fontSize: 11, color: AppColors.primary),
                             ),
                         ],
                       )
@@ -244,10 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildProSection() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: _isLoadingPro
           ? const Padding(
               padding: EdgeInsets.all(20),
@@ -257,15 +244,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 if (_isPro)
                   const ListTile(
-                    leading: Icon(Icons.verified_rounded, color: Color(0xFF1D9E75), size: 28),
-                    title: Text(
-                      '✅ Pro 구독 중',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      '모든 프리미엄 기능을 사용 중이에요',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
+                    leading: Icon(Icons.verified_rounded, color: AppColors.primary, size: 28),
+                    title: Text('✅ Pro 구독 중', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    subtitle: Text('모든 프리미엄 기능을 사용 중이에요', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   )
                 else
@@ -274,10 +255,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE1F5EE),
+                        color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.workspace_premium_rounded, size: 18, color: Color(0xFF1D9E75)),
+                      child: const Icon(Icons.workspace_premium_rounded, size: 18, color: AppColors.primary),
                     ),
                     title: const Text('Pro로 업그레이드', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                     subtitle: const Text('프리미엄 기능 전체 이용', style: TextStyle(fontSize: 12, color: Colors.grey)),
@@ -285,7 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1D9E75)),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                           )
                         : const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
                     onTap: _isPurchasing ? null : _onPurchasePro,
@@ -297,10 +278,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE1F5EE),
+                      color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.restore_rounded, size: 18, color: Color(0xFF1D9E75)),
+                    child: const Icon(Icons.restore_rounded, size: 18, color: AppColors.primary),
                   ),
                   title: const Text('구매 복원', style: TextStyle(fontSize: 14, color: Colors.black87)),
                   trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
@@ -314,17 +295,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildMenuSection() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
-          _buildMenuItem(
-            icon: Icons.tune_rounded,
-            label: '예산 재설정',
-            onTap: _onResetBudget,
-          ),
+          _buildMenuItem(icon: Icons.tune_rounded, label: '예산 재설정', onTap: _onResetBudget),
           const Divider(height: 1, indent: 56, endIndent: 16),
           _buildToggleItem(
             icon: Icons.autorenew_rounded,
@@ -350,24 +324,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    final color = isDestructive ? const Color(0xFFE24B4A) : Colors.black87;
+    final color = isDestructive ? AppColors.danger : Colors.black87;
     return ListTile(
       onTap: onTap,
       leading: Container(
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: isDestructive
-              ? const Color(0xFFFCEBEB)
-              : const Color(0xFFE1F5EE),
+          color: isDestructive ? AppColors.dangerLight : AppColors.primaryLight,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, size: 18, color: color),
       ),
-      title: Text(
-        label,
-        style: TextStyle(fontSize: 14, color: color),
-      ),
+      title: Text(label, style: TextStyle(fontSize: 14, color: color)),
       trailing: Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -384,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: const Color(0xFFE1F5EE),
+          color: AppColors.primaryLight,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, size: 18, color: Colors.black87),
@@ -393,8 +362,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: const Color(0xFF1D9E75),
-        activeTrackColor: const Color(0xFFE1F5EE),
+        activeThumbColor: AppColors.primary,
+        activeTrackColor: AppColors.primaryLight,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -402,10 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildInfoSection() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           _buildInfoTile('버전', '1.0.0'),

@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../constants/app_categories.dart';
+import '../constants/app_colors.dart';
+import '../constants/app_strings.dart';
 import '../models/budget.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
@@ -10,7 +13,9 @@ import '../services/ai_service.dart';
 import '../services/storage_service.dart';
 import '../utils/category.dart' as cat;
 import '../utils/format.dart';
+import '../widgets/app_tab_selector.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/budget_summary_card.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({super.key});
@@ -30,12 +35,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   bool _isLoadingReport = false;
 
   final _dateFormat = DateFormat('MM/dd HH:mm');
-
-  static const _incomeCategoryList = [
-    ('💼', '알바'),
-    ('💰', '용돈'),
-    ('💵', '기타수입'),
-  ];
 
   @override
   void initState() {
@@ -99,16 +98,16 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('삭제', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text(AppStrings.delete, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         content: Text(message, style: const TextStyle(fontSize: 14, color: Colors.grey)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+            child: const Text(AppStrings.cancel, style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제', style: TextStyle(color: Color(0xFFE24B4A), fontWeight: FontWeight.w600)),
+            child: const Text(AppStrings.delete, style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -125,7 +124,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _expenses.insert(0, expense));
-        AppToast.show(context, '삭제에 실패했어요.', isError: true);
+        AppToast.show(context, AppStrings.deleteFailed, isError: true);
       }
     }
   }
@@ -145,14 +144,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
     try {
       await StorageService().updateExpense(updated);
-      if (mounted) AppToast.show(context, '수정됐어요.');
+      if (mounted) AppToast.show(context, AppStrings.updated);
     } catch (_) {
       if (mounted) {
         setState(() {
           final idx = _expenses.indexWhere((e) => e.id == updated.id);
           if (idx != -1) _expenses[idx] = expense;
         });
-        AppToast.show(context, '수정에 실패했어요.', isError: true);
+        AppToast.show(context, AppStrings.updateFailed, isError: true);
       }
     }
   }
@@ -178,40 +177,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             children: [
               const Text('지출 수정', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
-                onChanged: (v) {
-                  final digits = v.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
-                  if (digits.isEmpty) {
-                    amountController.value = const TextEditingValue(text: '');
-                  } else {
-                    final n = int.tryParse(digits);
-                    if (n != null) {
-                      final formatted = formatter.format(n);
-                      amountController.value = TextEditingValue(
-                        text: formatted,
-                        selection: TextSelection.collapsed(offset: formatted.length),
-                      );
-                    }
-                  }
-                },
-                decoration: InputDecoration(
-                  labelText: '금액',
-                  suffixText: '원',
-                  filled: true,
-                  fillColor: Colors.white,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF1D9E75)),
-                  ),
-                ),
-              ),
+              _buildAmountTextField(amountController, formatter),
               const SizedBox(height: 16),
               const Text('카테고리', style: TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 8),
@@ -222,43 +188,16 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   final isSelected = selectedCategory == item.$2;
                   return GestureDetector(
                     onTap: () => setSheetState(() => selectedCategory = item.$2),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFE1F5EE) : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${item.$1} ${item.$2}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isSelected ? const Color(0xFF1D9E75) : Colors.grey,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
+                    child: _buildSheetChip(item.$1, item.$2, isSelected),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    final amount = int.tryParse(amountController.text.replaceAll(',', '')) ?? expense.amount;
-                    _updateExpense(expense, amount, selectedCategory);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D9E75),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('저장', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                ),
-              ),
+              _buildSaveButton(() {
+                Navigator.pop(ctx);
+                final amount = int.tryParse(amountController.text.replaceAll(',', '')) ?? expense.amount;
+                _updateExpense(expense, amount, selectedCategory);
+              }),
             ],
           ),
         ),
@@ -275,7 +214,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _incomes.insert(0, income));
-        AppToast.show(context, '삭제에 실패했어요.', isError: true);
+        AppToast.show(context, AppStrings.deleteFailed, isError: true);
       }
     }
   }
@@ -295,14 +234,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
     try {
       await StorageService().updateIncome(updated);
-      if (mounted) AppToast.show(context, '수정됐어요.');
+      if (mounted) AppToast.show(context, AppStrings.updated);
     } catch (_) {
       if (mounted) {
         setState(() {
           final idx = _incomes.indexWhere((i) => i.id == updated.id);
           if (idx != -1) _incomes[idx] = income;
         });
-        AppToast.show(context, '수정에 실패했어요.', isError: true);
+        AppToast.show(context, AppStrings.updateFailed, isError: true);
       }
     }
   }
@@ -328,90 +267,103 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             children: [
               const Text('수입 수정', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
-                onChanged: (v) {
-                  final digits = v.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
-                  if (digits.isEmpty) {
-                    amountController.value = const TextEditingValue(text: '');
-                  } else {
-                    final n = int.tryParse(digits);
-                    if (n != null) {
-                      final formatted = formatter.format(n);
-                      amountController.value = TextEditingValue(
-                        text: formatted,
-                        selection: TextSelection.collapsed(offset: formatted.length),
-                      );
-                    }
-                  }
-                },
-                decoration: InputDecoration(
-                  labelText: '금액',
-                  suffixText: '원',
-                  filled: true,
-                  fillColor: Colors.white,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF1D9E75)),
-                  ),
-                ),
-              ),
+              _buildAmountTextField(amountController, formatter),
               const SizedBox(height: 16),
               const Text('카테고리', style: TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _incomeCategoryList.map((item) {
+                children: AppCategories.incomeList.map((item) {
                   final isSelected = selectedCategory == item.$2;
                   return GestureDetector(
                     onTap: () => setSheetState(() => selectedCategory = item.$2),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFE1F5EE) : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${item.$1} ${item.$2}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isSelected ? const Color(0xFF1D9E75) : Colors.grey,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
+                    child: _buildSheetChip(item.$1, item.$2, isSelected),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    final amount = int.tryParse(amountController.text.replaceAll(',', '')) ?? income.amount;
-                    _updateIncome(income, amount, selectedCategory);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D9E75),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('저장', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                ),
-              ),
+              _buildSaveButton(() {
+                Navigator.pop(ctx);
+                final amount = int.tryParse(amountController.text.replaceAll(',', '')) ?? income.amount;
+                _updateIncome(income, amount, selectedCategory);
+              }),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ── 공용 시트 위젯 ────────────────────────────────────
+  Widget _buildAmountTextField(TextEditingController ctrl, NumberFormat formatter) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
+      onChanged: (v) {
+        final digits = v.replaceAll(',', '').replaceAll(RegExp(r'[^0-9]'), '');
+        if (digits.isEmpty) {
+          ctrl.value = const TextEditingValue(text: '');
+        } else {
+          final n = int.tryParse(digits);
+          if (n != null) {
+            final formatted = formatter.format(n);
+            ctrl.value = TextEditingValue(
+              text: formatted,
+              selection: TextSelection.collapsed(offset: formatted.length),
+            );
+          }
+        }
+      },
+      decoration: InputDecoration(
+        labelText: '금액',
+        suffixText: '원',
+        filled: true,
+        fillColor: Colors.white,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetChip(String emoji, String label, bool isSelected) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.primaryLight : AppColors.chipUnselected,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '$emoji $label',
+        style: TextStyle(
+          fontSize: 13,
+          color: isSelected ? AppColors.primary : Colors.grey,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(VoidCallback onPressed) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
+        child: const Text(AppStrings.save, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -420,7 +372,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8FA),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -435,7 +387,15 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               ? _buildError()
               : Column(
                   children: [
-                    _buildTabSelector(),
+                    Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                      child: AppTabSelector(
+                        tabs: const ['지출', '수입'],
+                        selectedIndex: _tabIndex,
+                        onTabChanged: (i) => setState(() => _tabIndex = i),
+                      ),
+                    ),
                     Expanded(
                       child: _tabIndex == 0
                           ? (_budget == null ? _buildEmpty() : _buildExpenseTab())
@@ -443,55 +403,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     ),
                   ],
                 ),
-    );
-  }
-
-  Widget _buildTabSelector() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0F0F0),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            _buildTabItem('지출', 0),
-            _buildTabItem('수입', 1),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabItem(String label, int index) {
-    final isSelected = _tabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _tabIndex = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: isSelected
-                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 1))]
-                : null,
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected ? Colors.black87 : Colors.grey,
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -517,7 +428,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryCard(totalSpent, achievementRate, actualSavings, monthlySavingsGoal),
+          BudgetSummaryCard(
+            totalSpent: totalSpent,
+            achievementRate: achievementRate,
+            actualSavings: actualSavings,
+            savingsGoal: monthlySavingsGoal,
+          ),
           const SizedBox(height: 20),
           _buildSectionLabel('AI 피드백'),
           const SizedBox(height: 8),
@@ -578,7 +494,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 const Text('이번 달 총 수입', style: TextStyle(fontSize: 13, color: Colors.grey)),
                 Text(
                   '${formatNumber(totalIncome)}원',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1D9E75)),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
                 ),
               ],
             ),
@@ -613,7 +529,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE24B4A),
+        color: AppColors.danger,
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
@@ -681,7 +597,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           const SizedBox(width: 12),
           Text(
             '+${formatNumber(income.amount)}원',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1D9E75)),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
           ),
         ],
       ),
@@ -689,24 +605,23 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildSkeleton() {
-    const grey = Color(0xFFE8E8E8);
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(height: 120, decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(16))),
+          Container(height: 120, decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(16))),
           const SizedBox(height: 20),
-          Container(width: 70, height: 14, decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(4))),
+          Container(width: 70, height: 14, decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(4))),
           const SizedBox(height: 8),
-          Container(height: 60, decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(12))),
+          Container(height: 60, decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(12))),
           const SizedBox(height: 20),
-          Container(width: 100, height: 14, decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(4))),
+          Container(width: 100, height: 14, decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(4))),
           const SizedBox(height: 8),
-          ...List.generate(3, (i) => Container(
+          ...List.generate(3, (_) => Container(
             height: 68,
             margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(color: grey, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: AppColors.skeleton, borderRadius: BorderRadius.circular(12)),
           )),
         ],
       ),
@@ -722,22 +637,22 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           children: [
             const Text('😢', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
-            const Text('데이터를 불러오지 못했어요.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const Text(AppStrings.loadFailed, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            const Text('다시 시도해주세요.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Text(AppStrings.retryPrompt, style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 20),
             SizedBox(
               height: 44,
               child: ElevatedButton(
                 onPressed: _loadData,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1D9E75),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                 ),
-                child: const Text('다시 시도', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                child: const Text(AppStrings.retry, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -757,7 +672,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('이번 달 예산을 설정해주세요!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const Text(AppStrings.noBudget, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -765,73 +680,17 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 child: ElevatedButton(
                   onPressed: () => context.go('/'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D9E75),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: const Text('설정하기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  child: const Text(AppStrings.setup, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(int totalSpent, double achievementRate, int actualSavings, int savingsGoal) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('총 지출', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    const SizedBox(height: 4),
-                    Text('${formatNumber(totalSpent)}원', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('저축 달성률', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${(achievementRate * 100).toStringAsFixed(0)}%',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1D9E75)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '실제 저축: ${formatNumber(actualSavings)}원 / 목표: ${formatNumber(savingsGoal)}원',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: achievementRate,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFE8F5EF),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1D9E75)),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -848,25 +707,22 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFE1F5EE), borderRadius: BorderRadius.circular(12)),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 13, color: Color(0xFF1D9E75), height: 1.5),
-      ),
+      decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)),
+      child: Text(text, style: const TextStyle(fontSize: 13, color: AppColors.primary, height: 1.5)),
     );
   }
 
   Widget _buildOverBudgetCard(String category, int overAmount) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFFCEBEB), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: AppColors.dangerLight, borderRadius: BorderRadius.circular(12)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(category, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           Text(
             '+${formatNumber(overAmount)}원 초과',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFE24B4A)),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.danger),
           ),
         ],
       ),
