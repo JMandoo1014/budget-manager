@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../constants/app_categories.dart';
 import '../constants/app_colors.dart';
+import '../utils/ai_cache.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
 import '../services/ai_service.dart';
@@ -107,6 +108,7 @@ class _InputScreenState extends State<InputScreen> {
       );
       await StorageService().saveExpense(expense);
       await _checkAndNotifyOverBudget(expense.category);
+      await AiCache.invalidateAll();
       if (mounted) {
         HapticFeedback.lightImpact();
         _expenseController.clear();
@@ -234,6 +236,7 @@ class _InputScreenState extends State<InputScreen> {
         amount: _incomeAmount,
       );
       await StorageService().saveIncome(income);
+      await AiCache.invalidateAll();
       if (mounted) {
         HapticFeedback.lightImpact();
         _incomeController.clear();
