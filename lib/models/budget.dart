@@ -4,6 +4,7 @@ class Budget {
   final int savingsMonths;
   final List<String> spendingPatterns;
   final Map<String, int> categoryBudgets;
+  final bool autoRollover;
 
   const Budget({
     required this.income,
@@ -11,12 +12,10 @@ class Budget {
     required this.savingsMonths,
     required this.spendingPatterns,
     required this.categoryBudgets,
+    this.autoRollover = true,
   });
 
-  int get totalBudget => income - savingsGoal;
-
-  int get remainingBudget =>
-      totalBudget - categoryBudgets.values.fold(0, (sum, v) => sum + v);
+  int get totalBudget => income - (savingsGoal ~/ savingsMonths);
 
   Budget copyWith({
     int? income,
@@ -24,6 +23,7 @@ class Budget {
     int? savingsMonths,
     List<String>? spendingPatterns,
     Map<String, int>? categoryBudgets,
+    bool? autoRollover,
   }) {
     return Budget(
       income: income ?? this.income,
@@ -31,6 +31,7 @@ class Budget {
       savingsMonths: savingsMonths ?? this.savingsMonths,
       spendingPatterns: spendingPatterns ?? this.spendingPatterns,
       categoryBudgets: categoryBudgets ?? this.categoryBudgets,
+      autoRollover: autoRollover ?? this.autoRollover,
     );
   }
 
@@ -41,16 +42,18 @@ class Budget {
       'savingsMonths': savingsMonths,
       'spendingPatterns': spendingPatterns,
       'categoryBudgets': categoryBudgets,
+      'autoRollover': autoRollover,
     };
   }
 
   factory Budget.fromJson(Map<String, dynamic> json) {
     return Budget(
       income: json['income'] as int,
-      savingsGoal: json['savingsGoal'] as int,
-      savingsMonths: json['savingsMonths'] as int,
-      spendingPatterns: List<String>.from(json['spendingPatterns'] as List),
-      categoryBudgets: Map<String, int>.from(json['categoryBudgets'] as Map),
+      savingsGoal: json['savings_goal'] as int,
+      savingsMonths: json['savings_months'] as int,
+      spendingPatterns: List<String>.from(json['spending_patterns'] as List),
+      categoryBudgets: Map<String, int>.from(json['category_budgets'] as Map),
+      autoRollover: json['auto_rollover'] as bool? ?? true,
     );
   }
 }

@@ -21,10 +21,10 @@ class Expense {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'rawInput': rawInput,
+      'raw_input': rawInput,
       'category': category,
       'amount': amount,
-      'createdAt': createdAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
       'memo': memo,
     };
   }
@@ -32,10 +32,10 @@ class Expense {
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
       id: json['id'] as String,
-      rawInput: json['rawInput'] as String,
+      rawInput: json['raw_input'] as String,
       category: json['category'] as String,
       amount: json['amount'] as int,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String),
       memo: json['memo'] as String?,
     );
   }
